@@ -1,0 +1,156 @@
+import { createClient } from "@/lib/supabase/server"
+import { redirect, notFound } from "next/navigation"
+import Link from "next/link"
+import { PageHeader } from "@/components/layout/page-header"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ArrowLeft } from "lucide-react"
+import { CancelSaleButton } from "@/components/sales/cancel-sale-button"
+import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
+
+function fmt(n: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
+}
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString("pt-BR", { dateStyle: "long" })
+}
+
+export default async function VendaDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+
+  const { data: profile } = await supabase
+    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  if (!profile) redirect("/onboarding")
+
+  const cid = profile.company_id
+
+  const [{ data: sale }, { data: items }, { data: payment }] = await Promise.all([
+    supabase.from("sales")
+      .select("*, customers(name, phone, whatsapp)")
+      .eq("id", id).eq("company_id", cid).single(),
+    supabase.from("sale_items")
+      .select("id, quantity, unit_price, discount, total, products(name, sku)")
+      .eq("sale_id", id).eq("company_id", cid)
+      .order("created_at"),
+    supabase.from("payments")
+      .select("method, amount")
+      .eq("sale_id", id).eq("company_id", cid)
+      .maybeSingle(),
+  ])
+
+  if (!sale) notFound()
+
+  const STATUS_LABELS: Record<string, string> = { concluida: "Concluída", cancelada: "Cancelada", pendente: "Pendente" }
+  const STATUS_VARIANTS: Record<string, "default" | "destructive" | "secondary"> = {
+    concluida: "default", cancelada: "destructive", pendente: "secondary",
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/vendas"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <PageHeader title={sale.sale_number} description={fmtDate(sale.created_at)} />
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={STATUS_VARIANTS[sale.status] ?? "secondary"}>{STATUS_LABELS[sale.status] ?? sale.status}</Badge>
+          {sale.status !== "cancelada" && <CancelSaleButton id={id} />}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Itens da venda</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-3 font-medium">Produto</th>
+                    <th className="text-right p-3 font-medium">Qtd</th>
+                    <th className="text-right p-3 font-medium">Preço</th>
+                    <th className="text-right p-3 font-medium hidden sm:table-cell">Desc.</th>
+                    <th className="text-right p-3 font-medium">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {(items ?? []).map((item: any) => (
+                    <tr key={item.id}>
+                      <td className="p-3">
+                        <p className="font-medium">{item.products?.name ?? "—"}</p>
+                        {item.products?.sku && <p className="text-xs text-muted-foreground">{item.products.sku}</p>}
+                      </td>
+                      <td className="p-3 text-right">{item.quantity}</td>
+                      <td className="p-3 text-right">{fmt(item.unit_price)}</td>
+                      <td className="p-3 text-right hidden sm:table-cell text-muted-foreground">
+                        {item.discount > 0 ? `−${fmt(item.discount)}` : "—"}
+                      </td>
+                      <td className="p-3 text-right font-medium">{fmt(item.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          {(sale as any).customers && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Cliente</CardTitle></CardHeader>
+              <CardContent className="text-sm space-y-1">
+                <p className="font-medium">{(sale as any).customers.name}</p>
+                {(sale as any).customers.phone && <p className="text-muted-foreground">{(sale as any).customers.phone}</p>}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Resumo financeiro</CardTitle></CardHeader>
+            <CardContent className="text-sm space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>{fmt(sale.subtotal)}</span>
+              </div>
+              {sale.discount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Desconto</span>
+                  <span>−{fmt(sale.discount)}</span>
+                </div>
+              )}
+              <Separator />
+              <div className="flex justify-between font-bold text-base">
+                <span>Total</span>
+                <span className="text-emerald-600">{fmt(sale.total)}</span>
+              </div>
+              {payment?.method && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Pagamento</span>
+                  <span>{PAYMENT_METHOD_LABELS[payment.method] ?? payment.method}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {sale.notes && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Observações</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground">{sale.notes}</p></CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
