@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
@@ -22,15 +23,14 @@ export default async function ProdutoDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
 
   const cid = profile.company_id
+  const supabase = await createClient()
 
   const [{ data: product }, { data: movements }] = await Promise.all([
     supabase.from("products").select("*, product_categories(name)").eq("id", id).eq("company_id", cid).single(),

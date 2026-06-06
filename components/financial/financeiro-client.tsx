@@ -78,20 +78,20 @@ function TransactionForm({ categories, onClose }: { categories: Category[]; onCl
         </div>
         <div className="space-y-1.5">
           <Label>Categoria</Label>
-          <Select name="category_id" defaultValue="">
+          <Select name="category_id" defaultValue="none">
             <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Sem categoria</SelectItem>
+              <SelectItem value="none">Sem categoria</SelectItem>
               {filteredCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
           <Label>Forma de pagamento</Label>
-          <Select name="payment_method" defaultValue="">
+          <Select name="payment_method" defaultValue="none">
             <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Não informada</SelectItem>
+              <SelectItem value="none">Não informada</SelectItem>
               {Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
               ))}

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
@@ -29,15 +30,14 @@ function fmtDate(d: string) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
 
   const cid = profile.company_id
+  const supabase = await createClient()
   const now = new Date()
   const todayStr = now.toISOString().slice(0, 10)
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
     { count: openOsCount },
     { data: lowStockProducts },
     { count: customerCount },
-    { data: pendingApprovalOs },
+    { count: waitingApprovalCount },
     { data: recentOs },
     { data: recentSales },
   ] = await Promise.all([
@@ -59,8 +59,10 @@ export default async function DashboardPage() {
     supabase.from("products").select("stock_quantity, minimum_stock").eq("company_id", cid)
       .eq("status", "active"),
     supabase.from("customers").select("*", { count: "exact", head: true }).eq("company_id", cid),
-    supabase.from("service_order_statuses").select("id").eq("company_id", cid)
-      .eq("slug", "aguardando-aprovacao"),
+    supabase.from("service_orders")
+      .select("id, service_order_statuses!inner(slug)", { count: "exact", head: true })
+      .eq("company_id", cid)
+      .eq("service_order_statuses.slug", "aguardando-aprovacao"),
     supabase.from("service_orders").select("id, order_number, priority, reported_problem, created_at, customers(name), service_order_statuses(name, color)")
       .eq("company_id", cid).is("delivered_at", null).order("created_at", { ascending: false }).limit(5),
     supabase.from("sales").select("id, sale_number, total, created_at, customers(name)").eq("company_id", cid)
@@ -70,13 +72,6 @@ export default async function DashboardPage() {
   const todayRevenue = (todaySales ?? []).reduce((s, r) => s + r.total, 0)
   const monthRevenue = (monthSales ?? []).reduce((s, r) => s + r.total, 0)
   const lowStockCount = (lowStockProducts ?? []).filter(p => p.stock_quantity <= p.minimum_stock).length
-
-  let waitingApprovalCount = 0
-  if (pendingApprovalOs && pendingApprovalOs.length > 0) {
-    const { count } = await supabase.from("service_orders").select("*", { count: "exact", head: true })
-      .eq("company_id", cid).eq("status_id", pendingApprovalOs[0].id)
-    waitingApprovalCount = count ?? 0
-  }
 
   const cards = [
     {

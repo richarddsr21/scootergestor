@@ -1,18 +1,18 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import { PageHeader } from "@/components/layout/page-header"
 import { PdvClient } from "@/components/sales/pdv-client"
 
 export default async function NovaVendaPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
 
   const cid = profile.company_id
+  const supabase = await createClient()
 
   const [{ data: products }, { data: customers }, { data: paymentMethods }] = await Promise.all([
     supabase.from("products")
@@ -25,7 +25,7 @@ export default async function NovaVendaPage() {
       .eq("company_id", cid)
       .order("name"),
     supabase.from("payment_methods")
-      .select("id, name, type")
+      .select("id, name, type, fee_percent, installment_fees")
       .eq("company_id", cid).eq("active", true)
       .order("name"),
   ])
@@ -36,7 +36,7 @@ export default async function NovaVendaPage() {
       <PdvClient
         products={products ?? []}
         customers={customers ?? []}
-        paymentMethods={paymentMethods ?? []}
+        paymentMethods={(paymentMethods ?? []) as any}
       />
     </div>
   )

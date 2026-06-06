@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,12 +8,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, Trash2, ShoppingCart, CheckCircle } from "lucide-react"
-import { confirmSaleAction, type CartItem } from "@/lib/actions/sales"
+import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X } from "lucide-react"
+import { confirmSaleAction, type CartItem, type PaymentEntry } from "@/lib/actions/sales"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
+
+interface InstallmentFeeRange { from: number; to: number; fee: number }
+
+interface PaymentMethod {
+  id: string
+  name: string
+  type: string
+  fee_percent: number
+  installment_fees: InstallmentFeeRange[] | null
+}
 
 interface Product {
   id: string
@@ -25,11 +34,33 @@ interface Product {
   unit: string
 }
 interface Customer { id: string; name: string; phone: string | null }
-interface PaymentMethod { id: string; name: string; type: string }
+
+type UIPaymentEntry = { id: number; methodType: string; amount: string; installments: number }
 
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
 }
+
+function isCreditCard(type: string) {
+  return type === "credit_card" || type === "cartao_credito"
+}
+
+const NO_FEE_TYPES = new Set(["cash", "dinheiro", "pix", "bank_slip", "boleto"])
+
+function getFeePercent(method: PaymentMethod, installments: number): number {
+  if (NO_FEE_TYPES.has(method.type)) return 0
+  if (isCreditCard(method.type) && method.installment_fees?.length) {
+    const range = method.installment_fees.find(r => installments >= r.from && installments <= r.to)
+    return range?.fee ?? 0
+  }
+  return method.fee_percent ?? 0
+}
+
+const INSTALLMENTS = Array.from({ length: 21 }, (_, i) => i + 1)
+
+const FALLBACK_METHODS: PaymentMethod[] = Object.entries(PAYMENT_METHOD_LABELS)
+  .filter(([type]) => type !== "payment_link")
+  .map(([type, name]) => ({ id: type, name, type, fee_percent: 0, installment_fees: null }))
 
 export function PdvClient({
   products,
@@ -45,9 +76,18 @@ export function PdvClient({
   const [cart, setCart] = useState<CartItem[]>([])
   const [search, setSearch] = useState("")
   const [customerId, setCustomerId] = useState<string>("none")
-  const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0]?.type ?? "dinheiro")
-  const [discount, setDiscount] = useState(0)
   const [notes, setNotes] = useState("")
+
+  // Discount
+  const [discountType, setDiscountType] = useState<"value" | "percent">("value")
+  const [discountInput, setDiscountInput] = useState(0)
+
+  // Payment entries
+  const entryIdRef = useRef(0)
+  const methods = paymentMethods.length > 0 ? paymentMethods : FALLBACK_METHODS
+  const [entries, setEntries] = useState<UIPaymentEntry[]>([
+    { id: entryIdRef.current++, methodType: methods[0]?.type ?? "dinheiro", amount: "", installments: 1 },
+  ])
 
   const filtered = search.trim()
     ? products.filter(p =>
@@ -60,10 +100,7 @@ export function PdvClient({
     setSearch("")
     const existing = cart.find(i => i.productId === product.id)
     if (existing) {
-      if (existing.quantity >= product.stock_quantity) {
-        toast.error("Estoque insuficiente")
-        return
-      }
+      if (existing.quantity >= product.stock_quantity) { toast.error("Estoque insuficiente"); return }
       setCart(cart.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i))
     } else {
       setCart([...cart, {
@@ -90,15 +127,74 @@ export function PdvClient({
     setCart(cart.map(i => i.productId === productId ? { ...i, discount: Math.max(0, disc) } : i))
   }
 
+  function addEntry() {
+    setEntries(prev => [...prev, {
+      id: entryIdRef.current++,
+      methodType: methods[0]?.type ?? "dinheiro",
+      amount: "",
+      installments: 1,
+    }])
+  }
+
+  function removeEntry(id: number) {
+    setEntries(prev => prev.filter(e => e.id !== id))
+  }
+
+  function updateEntry(id: number, patch: Partial<Omit<UIPaymentEntry, "id">>) {
+    setEntries(prev => prev.map(e => {
+      if (e.id !== id) return e
+      const updated = { ...e, ...patch }
+      if (patch.methodType && !isCreditCard(patch.methodType)) updated.installments = 1
+      return updated
+    }))
+  }
+
+  // Totals
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity - i.discount, 0)
-  const total = Math.max(0, subtotal - discount)
+  const discountAmount = discountType === "percent"
+    ? subtotal * Math.min(100, Math.max(0, discountInput)) / 100
+    : Math.max(0, discountInput)
+  const total = Math.max(0, subtotal - discountAmount)
+  const isMulti = entries.length > 1
+
+  // Per-entry fee calculation
+  function entryBaseAmount(entry: UIPaymentEntry): number {
+    return isMulti ? (parseFloat(entry.amount) || 0) : total
+  }
+
+  function entryFee(entry: UIPaymentEntry): number {
+    const method = methods.find(m => m.type === entry.methodType)
+    if (!method) return 0
+    const pct = getFeePercent(method, entry.installments)
+    return pct > 0 ? entryBaseAmount(entry) * pct / 100 : 0
+  }
+
+  function entryFeePercent(entry: UIPaymentEntry): number {
+    const method = methods.find(m => m.type === entry.methodType)
+    if (!method) return 0
+    return getFeePercent(method, entry.installments)
+  }
+
+  const totalEntered = isMulti ? entries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) : total
+  const remaining = isMulti ? total - totalEntered : 0
+  const totalFees = entries.reduce((s, e) => s + entryFee(e), 0)
+  const clientTotal = total + totalFees
 
   function handleConfirm() {
     if (cart.length === 0) { toast.error("Adicione pelo menos um produto"); return }
-    if (!paymentMethod) { toast.error("Selecione a forma de pagamento"); return }
+    if (isMulti && Math.abs(remaining) > 0.01) {
+      toast.error(`Distribua o valor completo. Faltam ${fmt(remaining)}`); return
+    }
+
+    const paymentData: PaymentEntry[] = entries.map(e => ({
+      method: e.methodType,
+      amount: entryBaseAmount(e),
+      fee_amount: entryFee(e),
+      installments: e.installments,
+    }))
 
     startTransition(async () => {
-      const result = await confirmSaleAction(cart, customerId === "none" ? null : customerId, discount, paymentMethod, notes)
+      const result = await confirmSaleAction(cart, customerId === "none" ? null : customerId, discountAmount, paymentData, notes)
       if (result.error) { toast.error(result.error); return }
       toast.success(result.success ?? "Venda registrada!")
       if (result.saleId) router.push(`/vendas/${result.saleId}`)
@@ -224,32 +320,159 @@ export function PdvClient({
 
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-sm">Pagamento</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Forma de pagamento</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.length > 0
-                    ? paymentMethods.map(m => <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>)
-                    : Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                </SelectContent>
-              </Select>
+          <CardContent className="space-y-4">
+
+            {/* Payment entries */}
+            <div className="space-y-3">
+              {entries.map((entry, idx) => {
+                const feePct = entryFeePercent(entry)
+                const feeAmt = entryFee(entry)
+                const base = entryBaseAmount(entry)
+
+                return (
+                  <div key={entry.id} className="space-y-2 rounded-lg border p-3">
+                    <div className="flex items-center gap-2">
+                      {isMulti && (
+                        <span className="text-xs text-muted-foreground w-4 shrink-0">{idx + 1}.</span>
+                      )}
+                      <Select
+                        value={entry.methodType}
+                        onValueChange={v => updateEntry(entry.id, { methodType: v })}
+                      >
+                        <SelectTrigger className="flex-1 h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {methods.map(m => (
+                            <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {entries.length > 1 && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-destructive"
+                          onClick={() => removeEntry(entry.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Amount — only in multi-payment mode */}
+                    {isMulti && (
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        placeholder="Valor (R$)"
+                        className="h-8 text-sm"
+                        value={entry.amount}
+                        onChange={e => updateEntry(entry.id, { amount: e.target.value })}
+                      />
+                    )}
+
+                    {/* Installments — only for credit card */}
+                    {isCreditCard(entry.methodType) && (
+                      <div className="space-y-1">
+                        <Select
+                          value={String(entry.installments)}
+                          onValueChange={v => updateEntry(entry.id, { installments: Number(v) })}
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INSTALLMENTS.map(n => {
+                              const perInstallment = n > 1 && base > 0 ? ` — ${fmt(base / n)}` : ""
+                              return (
+                                <SelectItem key={n} value={String(n)}>
+                                  {n === 1 ? "1x (à vista)" : `${n}x${perInstallment}`}
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectContent>
+                        </Select>
+                        {entry.installments > 1 && base > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {entry.installments}x de {fmt(base / entry.installments)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Fee indicator */}
+                    {feePct > 0 && base > 0 && (
+                      <div className="flex justify-between text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded px-2 py-1">
+                        <span>Taxa maquininha ({feePct}%)</span>
+                        <span>+{fmt(feeAmt)}</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Remaining balance indicator */}
+              {isMulti && (
+                <div className={`flex justify-between text-sm px-1 font-medium ${Math.abs(remaining) < 0.01 ? "text-emerald-600" : "text-amber-600"}`}>
+                  <span>Restante</span>
+                  <span>{fmt(remaining)}</span>
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-xs"
+                onClick={addEntry}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Adicionar outra forma de pagamento
+              </Button>
             </div>
+
+            <Separator />
+
+            {/* Discount */}
             <div className="space-y-1.5">
-              <Label htmlFor="discount">Desconto global (R$)</Label>
-              <Input
-                id="discount"
-                type="number"
-                min={0}
-                step="0.01"
-                value={discount || ""}
-                onChange={e => setDiscount(Math.max(0, Number(e.target.value)))}
-                placeholder="0,00"
-              />
+              <Label>Desconto</Label>
+              <div className="flex gap-1.5">
+                <div className="flex rounded-md border overflow-hidden shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType("value")}
+                    className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${discountType === "value" ? "bg-foreground text-background" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                  >
+                    R$
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiscountType("percent")}
+                    className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${discountType === "percent" ? "bg-foreground text-background" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                  >
+                    %
+                  </button>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  max={discountType === "percent" ? 100 : undefined}
+                  step="0.01"
+                  value={discountInput || ""}
+                  onChange={e => setDiscountInput(Math.max(0, Number(e.target.value)))}
+                  placeholder={discountType === "percent" ? "0%" : "0,00"}
+                />
+              </div>
+              {discountAmount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Desconto: {fmt(discountAmount)}
+                </p>
+              )}
             </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="notes">Observações</Label>
               <Textarea id="notes" rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="..." />
@@ -263,16 +486,27 @@ export function PdvClient({
               <span className="text-muted-foreground">Subtotal</span>
               <span>{fmt(subtotal)}</span>
             </div>
-            {discount > 0 && (
+            {discountAmount > 0 && (
               <div className="flex justify-between text-sm text-red-600">
-                <span>Desconto</span>
-                <span>−{fmt(discount)}</span>
+                <span>Desconto{discountType === "percent" ? ` (${discountInput}%)` : ""}</span>
+                <span>−{fmt(discountAmount)}</span>
               </div>
             )}
             <Separator />
+            <div className="flex justify-between text-sm font-medium">
+              <span>Total dos produtos</span>
+              <span>{fmt(total)}</span>
+            </div>
+            {totalFees > 0 && (
+              <div className="flex justify-between text-sm text-amber-600">
+                <span>Taxa(s) maquininha</span>
+                <span>+{fmt(totalFees)}</span>
+              </div>
+            )}
+            {totalFees > 0 && <Separator />}
             <div className="flex justify-between font-bold text-lg">
-              <span>Total</span>
-              <span className="text-emerald-600">{fmt(total)}</span>
+              <span>Cliente paga</span>
+              <span className="text-emerald-600">{fmt(clientTotal)}</span>
             </div>
             <Button
               className="w-full mt-2"

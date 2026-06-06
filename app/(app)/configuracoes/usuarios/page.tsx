@@ -1,24 +1,18 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import { PageHeader } from "@/components/layout/page-header"
 import { UsersClient } from "./users-client"
 import type { Profile, CompanyInvitation } from "@/types/app"
 
 export default async function UsuariosPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: currentProfile } = await supabase
-    .from("profiles")
-    .select("company_id, role")
-    .eq("user_id", user.id)
-    .single()
-
+  const currentProfile = await getAuthProfile()
   if (!currentProfile) redirect("/onboarding")
+
+  const supabase = await createClient()
 
   const [{ data: profiles }, { data: invitations }] = await Promise.all([
     supabase

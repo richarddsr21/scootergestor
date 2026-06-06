@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
@@ -23,17 +24,16 @@ export default async function VendaDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
 
   const cid = profile.company_id
+  const supabase = await createClient()
 
-  const [{ data: sale }, { data: items }, { data: payment }] = await Promise.all([
+  const [{ data: sale }, { data: items }, { data: payments }] = await Promise.all([
     supabase.from("sales")
       .select("*, customers(name, phone, whatsapp)")
       .eq("id", id).eq("company_id", cid).single(),
@@ -42,9 +42,9 @@ export default async function VendaDetailPage({
       .eq("sale_id", id).eq("company_id", cid)
       .order("created_at"),
     supabase.from("payments")
-      .select("method, amount")
+      .select("method, amount, fee_amount, installments")
       .eq("sale_id", id).eq("company_id", cid)
-      .maybeSingle(),
+      .order("created_at"),
   ])
 
   if (!sale) notFound()
@@ -134,11 +134,34 @@ export default async function VendaDetailPage({
                 <span>Total</span>
                 <span className="text-emerald-600">{fmt(sale.total)}</span>
               </div>
-              {payment?.method && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Pagamento</span>
-                  <span>{PAYMENT_METHOD_LABELS[payment.method] ?? payment.method}</span>
-                </div>
+              {(payments ?? []).length > 0 && (
+                <>
+                  <Separator />
+                  {(payments ?? []).map((p: any, i: number) => {
+                    const label = `${PAYMENT_METHOD_LABELS[p.method] ?? p.method}${p.installments > 1 ? ` (${p.installments}x)` : ""}`
+                    const clientAmt = (p.amount ?? 0) + (p.fee_amount ?? 0)
+                    return (
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex justify-between text-muted-foreground text-xs">
+                          <span>{label}</span>
+                          <span>{fmt(p.amount)}</span>
+                        </div>
+                        {p.fee_amount > 0 && (
+                          <div className="flex justify-between text-amber-600 text-xs">
+                            <span>Taxa maquininha</span>
+                            <span>+{fmt(p.fee_amount)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {(payments ?? []).some((p: any) => p.fee_amount > 0) && (
+                    <div className="flex justify-between text-xs font-medium pt-1 border-t">
+                      <span>Total pago pelo cliente</span>
+                      <span>{fmt((payments ?? []).reduce((s: number, p: any) => s + (p.amount ?? 0) + (p.fee_amount ?? 0), 0))}</span>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

@@ -66,7 +66,6 @@ export const PAYMENT_METHODS = [
   "pix",
   "cartao_debito",
   "cartao_credito",
-  "link_pagamento",
   "boleto",
   "misto",
   "outro",
@@ -78,7 +77,6 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pix: "Pix",
   cartao_debito: "Cartão de Débito",
   cartao_credito: "Cartão de Crédito",
-  link_pagamento: "Link de Pagamento",
   boleto: "Boleto",
   misto: "Pagamento Misto",
   outro: "Outro",
@@ -153,7 +151,6 @@ export const DEFAULT_PAYMENT_METHODS = [
   { name: "Pix", type: "pix", active: true },
   { name: "Cartão de Débito", type: "debit_card", active: true },
   { name: "Cartão de Crédito", type: "credit_card", active: true },
-  { name: "Link de Pagamento", type: "payment_link", active: true },
   { name: "Boleto", type: "bank_slip", active: false },
 ]
 

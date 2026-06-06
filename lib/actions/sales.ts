@@ -23,17 +23,25 @@ export interface CartItem {
   discount: number
 }
 
+export interface PaymentEntry {
+  method: string
+  amount: number
+  fee_amount: number
+  installments: number
+}
+
 export async function confirmSaleAction(
   items: CartItem[],
   customerId: string | null,
   discount: number,
-  paymentMethod: string,
+  paymentEntries: PaymentEntry[],
   notes: string
 ): Promise<ActionState & { saleId?: string }> {
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
 
   if (items.length === 0) return { error: "Adicione pelo menos um produto" }
+  if (!paymentEntries || paymentEntries.length === 0) return { error: "Selecione a forma de pagamento" }
 
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity - i.discount, 0)
   const total = Math.max(0, subtotal - discount)
@@ -65,8 +73,8 @@ export async function confirmSaleAction(
 
   if (saleErr || !sale) return { error: "Erro ao criar venda" }
 
-  // Create sale items + update stock
-  for (const item of items) {
+  // Create sale items + update stock (each item processed in parallel)
+  await Promise.all(items.map(async (item) => {
     const itemTotal = item.unitPrice * item.quantity - item.discount
 
     await ctx.supabase.from("sale_items").insert({
@@ -80,7 +88,6 @@ export async function confirmSaleAction(
       total: itemTotal,
     })
 
-    // Get current stock and update
     const { data: product } = await ctx.supabase
       .from("products")
       .select("stock_quantity")
@@ -112,18 +119,21 @@ export async function confirmSaleAction(
         .eq("id", item.productId)
         .eq("company_id", ctx.profile.company_id)
     }
-  }
+  }))
 
-  // Create payment record
-  await ctx.supabase.from("payments").insert({
-    company_id: ctx.profile.company_id,
-    sale_id: sale.id,
-    service_order_id: null,
-    method: paymentMethod,
-    amount: total,
-    installments: 1,
-    paid_at: new Date().toISOString(),
-  })
+  // Create payment records in parallel
+  await Promise.all(paymentEntries.map((entry) =>
+    ctx.supabase.from("payments").insert({
+      company_id: ctx.profile.company_id,
+      sale_id: sale.id,
+      service_order_id: null,
+      method: entry.method,
+      amount: entry.amount,
+      fee_amount: entry.fee_amount,
+      installments: entry.installments,
+      paid_at: new Date().toISOString(),
+    })
+  ))
 
   revalidatePath("/vendas")
   revalidatePath("/dashboard")

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
@@ -21,15 +22,14 @@ export default async function FornecedoresPage({
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
 
   const cid = profile.company_id
+  const supabase = await createClient()
 
   let query = supabase
     .from("suppliers")

@@ -1,11 +1,10 @@
+import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { EmptyState } from "@/components/shared/empty-state"
-import { SearchInput } from "@/components/shared/search-input"
-import { Pagination } from "@/components/shared/pagination"
-import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react"
+import { TrendingUp, TrendingDown, Wallet } from "lucide-react"
 import { FinanceiroClient } from "@/components/financial/financeiro-client"
 
 const PAGE_SIZE = 20
@@ -24,15 +23,14 @@ export default async function FinanceiroPage({
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
 
   const cid = profile.company_id
+  const supabase = await createClient()
 
   const now = new Date()
   const currentMes = mes ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
@@ -40,11 +38,7 @@ export default async function FinanceiroPage({
   const [year, month] = currentMes.split("-").map(Number)
   const mesEnd = new Date(year, month, 0).toISOString().slice(0, 10)
 
-  const [{ data: categories }] = await Promise.all([
-    supabase.from("financial_categories").select("id, name, type").eq("company_id", cid).order("name"),
-  ])
-
-  let query = supabase
+  let txQuery = supabase
     .from("financial_transactions")
     .select("id, type, description, amount, category_id, payment_method, transaction_date", { count: "exact" })
     .eq("company_id", cid)
@@ -53,18 +47,23 @@ export default async function FinanceiroPage({
     .order("transaction_date", { ascending: false })
     .range(from, to)
 
-  if (tipo) query = query.eq("type", tipo)
-  if (q) query = query.ilike("description", `%${q}%`)
+  if (tipo) txQuery = txQuery.eq("type", tipo)
+  if (q) txQuery = txQuery.ilike("description", `%${q}%`)
 
-  const { data: transactions, count } = await query
-
-  // Summary for current month
-  const { data: allMonth } = await supabase
-    .from("financial_transactions")
-    .select("type, amount")
-    .eq("company_id", cid)
-    .gte("transaction_date", mesStart)
-    .lte("transaction_date", mesEnd)
+  const [
+    { data: categories },
+    { data: transactions, count },
+    { data: allMonth },
+  ] = await Promise.all([
+    supabase.from("financial_categories").select("id, name, type").eq("company_id", cid).order("name"),
+    txQuery,
+    supabase
+      .from("financial_transactions")
+      .select("type, amount")
+      .eq("company_id", cid)
+      .gte("transaction_date", mesStart)
+      .lte("transaction_date", mesEnd),
+  ])
 
   const totalEntrada = (allMonth ?? []).filter(t => t.type === "entrada").reduce((s, t) => s + t.amount, 0)
   const totalSaida = (allMonth ?? []).filter(t => t.type === "saida").reduce((s, t) => s + t.amount, 0)
@@ -97,14 +96,16 @@ export default async function FinanceiroPage({
         })}
       </div>
 
-      <FinanceiroClient
-        transactions={transactions ?? []}
-        categories={categories ?? []}
-        count={count ?? 0}
-        pageSize={PAGE_SIZE}
-        currentMes={currentMes}
-        tipo={tipo ?? ""}
-      />
+      <Suspense fallback={<div className="h-64 flex items-center justify-center text-sm text-muted-foreground">Carregando...</div>}>
+        <FinanceiroClient
+          transactions={transactions ?? []}
+          categories={categories ?? []}
+          count={count ?? 0}
+          pageSize={PAGE_SIZE}
+          currentMes={currentMes}
+          tipo={tipo ?? ""}
+        />
+      </Suspense>
     </div>
   )
 }

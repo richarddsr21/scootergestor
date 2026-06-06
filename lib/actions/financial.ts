@@ -40,8 +40,8 @@ export async function createTransactionAction(
   const { error } = await ctx.supabase.from("financial_transactions").insert({
     company_id: ctx.profile.company_id,
     created_by: ctx.user.id,
-    category_id: category_id && category_id !== "" ? category_id : null,
-    payment_method: payment_method && payment_method !== "" ? payment_method : null,
+    category_id: category_id && category_id !== "" && category_id !== "none" ? category_id : null,
+    payment_method: payment_method && payment_method !== "" && payment_method !== "none" ? payment_method : null,
     reference_type: null,
     reference_id: null,
     ...rest,

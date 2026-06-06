@@ -281,6 +281,7 @@ export interface Database {
           service_order_id: string | null
           method: string
           amount: number
+          fee_amount: number
           installments: number
           paid_at: string | null
           created_at: string
@@ -582,6 +583,8 @@ export interface Database {
           name: string
           type: string
           active: boolean
+          fee_percent: number
+          installment_fees: Json | null
           created_at: string
           updated_at: string
         }

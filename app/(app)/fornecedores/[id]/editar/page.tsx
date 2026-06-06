@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect, notFound } from "next/navigation"
 import { PageHeader } from "@/components/layout/page-header"
 import { SupplierForm } from "@/components/suppliers/supplier-form"
@@ -9,13 +10,12 @@ export default async function EditarFornecedorPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
+  const supabase = await createClient()
 
   const { data: supplier } = await supabase
     .from("suppliers")

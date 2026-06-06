@@ -437,6 +437,37 @@ export async function togglePaymentMethodAction(
   return { success: active ? "Forma ativada" : "Forma desativada" }
 }
 
+export interface InstallmentFeeRange {
+  from: number
+  to: number
+  fee: number
+}
+
+export async function updatePaymentMethodFeesAction(
+  id: string,
+  feePercent: number,
+  installmentFees: InstallmentFeeRange[] | null
+): Promise<ActionState> {
+  const ctx = await getAdminCtx()
+  if (!ctx) return { error: "Sem permissão" }
+
+  if (feePercent < 0 || feePercent > 100) return { error: "Taxa inválida" }
+
+  const { error } = await ctx.supabase
+    .from("payment_methods")
+    .update({
+      fee_percent: feePercent,
+      installment_fees: installmentFees as unknown as import("@/types/database").Json ?? null,
+    })
+    .eq("id", id)
+    .eq("company_id", ctx.profile.company_id)
+
+  if (error) return { error: `Erro ao salvar taxas: ${error.message}` }
+
+  revalidatePath("/configuracoes/pagamentos")
+  return { success: "Taxas salvas" }
+}
+
 // ─── MENSAGENS WHATSAPP ───────────────────────────────────────────────────────
 
 export async function updateMessageTemplateAction(

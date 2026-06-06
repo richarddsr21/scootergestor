@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import { PageHeader } from "@/components/layout/page-header"
 import { RelatoriosClient } from "@/components/reports/relatorios-client"
@@ -11,15 +12,14 @@ export default async function RelatoriosPage({
   const { periodo } = await searchParams
   const months = Math.max(1, Math.min(12, Number(periodo ?? "6")))
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles").select("company_id").eq("user_id", user.id).single()
+  const profile = await getAuthProfile()
   if (!profile) redirect("/onboarding")
 
   const cid = profile.company_id
+  const supabase = await createClient()
 
   const now = new Date()
   const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1).toISOString().slice(0, 10)
