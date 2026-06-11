@@ -1,12 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Bell, Search, LogOut, Settings, ChevronDown, User } from "lucide-react"
+import { Search, LogOut, Settings, ChevronDown, User } from "lucide-react"
 import { useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +17,7 @@ import {
 import { ROLE_LABELS } from "@/lib/constants"
 import { logoutAction } from "@/lib/actions/auth"
 import type { Profile } from "@/types/app"
+import { NotificationBell } from "@/components/layout/notification-bell"
 
 interface AppHeaderProps {
   profile?: Profile | null
@@ -48,17 +48,7 @@ export function AppHeader({ profile }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1.5 ml-auto">
-        {/* Notification bell */}
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-9 text-muted-foreground hover:text-foreground"
-          >
-            <Bell className="size-4" />
-            <span className="sr-only">Notificações</span>
-          </Button>
-        </div>
+        <NotificationBell />
 
         {/* User dropdown */}
         {profile && (

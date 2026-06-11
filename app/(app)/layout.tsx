@@ -17,11 +17,17 @@ export default async function AppLayout({
   if (!profile) redirect("/onboarding")
 
   const supabase = await createClient()
-  const { data: company } = await supabase
-    .from("companies")
-    .select("*")
-    .eq("id", profile.company_id)
-    .single()
+  const [{ data: company }, { data: lowStockProducts }] = await Promise.all([
+    supabase.from("companies").select("*").eq("id", profile.company_id).single(),
+    supabase
+      .from("products")
+      .select("stock_quantity, minimum_stock")
+      .eq("company_id", profile.company_id)
+      .eq("status", "active"),
+  ])
+  const lowStockCount = (lowStockProducts ?? []).filter(
+    (p) => p.stock_quantity <= p.minimum_stock
+  ).length
 
   if (!company) redirect("/onboarding")
 
@@ -30,7 +36,11 @@ export default async function AppLayout({
       profile={profile as Profile}
       company={company as Company}
     >
-      <AppShell profile={profile as Profile} companyName={company.name}>
+      <AppShell
+        profile={profile as Profile}
+        companyName={company.name}
+        lowStockCount={lowStockCount ?? 0}
+      >
         {children}
       </AppShell>
     </AuthProvider>

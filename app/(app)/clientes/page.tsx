@@ -5,10 +5,10 @@ import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/shared/empty-state"
 import { SearchInput } from "@/components/shared/search-input"
 import { Pagination } from "@/components/shared/pagination"
+import { ClientesExportButton } from "@/components/customers/clientes-export-button"
 import { Plus, Users, Phone } from "lucide-react"
 
 const PAGE_SIZE = 20
@@ -32,7 +32,7 @@ export default async function ClientesPage({
   const cid = profile.company_id
   const supabase = await createClient()
 
-  let query = supabase
+  let customerQuery = supabase
     .from("customers")
     .select("id, name, phone, whatsapp, email, city, cpf_cnpj, created_at", { count: "exact" })
     .eq("company_id", cid)
@@ -40,18 +40,28 @@ export default async function ClientesPage({
     .range(from, to)
 
   if (q) {
-    query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,cpf_cnpj.ilike.%${q}%,email.ilike.%${q}%`)
+    customerQuery = customerQuery.or(
+      `name.ilike.%${q}%,phone.ilike.%${q}%,cpf_cnpj.ilike.%${q}%,email.ilike.%${q}%`
+    )
   }
 
-  const { data: customers, count } = await query
+  const [{ data: settings }, { data: customers, count }] = await Promise.all([
+    supabase.from("company_settings").select("business_name").eq("company_id", cid).maybeSingle(),
+    customerQuery,
+  ])
+
+  const companyName = (settings as any)?.business_name ?? "ScooterGestor"
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <PageHeader title="Clientes" description={`${count ?? 0} cliente${(count ?? 0) !== 1 ? "s" : ""} cadastrado${(count ?? 0) !== 1 ? "s" : ""}`} />
-        <Button asChild size="sm">
-          <Link href="/clientes/novo"><Plus className="mr-1 h-4 w-4" />Novo cliente</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ClientesExportButton companyName={companyName} />
+          <Button asChild size="sm">
+            <Link href="/clientes/novo"><Plus className="mr-1 h-4 w-4" />Novo cliente</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="max-w-sm">

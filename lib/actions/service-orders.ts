@@ -279,3 +279,99 @@ export async function updateOsNotesAction(
   revalidatePath(`/oficina/${osId}`)
   return { success: "Nota salva" }
 }
+
+// ─── payment ──────────────────────────────────────────────────────────────────
+
+export interface OsPaymentEntry {
+  method: string
+  amount: number
+  fee_amount: number
+  installments: number
+}
+
+export interface OsPaymentData {
+  total: number
+  payment_status: string
+  paymentMethods: {
+    id: string
+    name: string
+    type: string
+    fee_percent: number
+    installment_fees: { from: number; to: number; fee: number }[] | null
+  }[]
+}
+
+export async function getOsPaymentDataAction(osId: string): Promise<OsPaymentData | null> {
+  const ctx = await getCtx()
+  if (!ctx) return null
+
+  const [{ data: os }, { data: pms }] = await Promise.all([
+    ctx.supabase
+      .from("service_orders")
+      .select("total, payment_status")
+      .eq("id", osId)
+      .eq("company_id", ctx.profile.company_id)
+      .single(),
+    ctx.supabase
+      .from("payment_methods")
+      .select("id, name, type, fee_percent, installment_fees")
+      .eq("company_id", ctx.profile.company_id)
+      .eq("active", true)
+      .order("name"),
+  ])
+
+  if (!os) return null
+
+  return {
+    total: os.total,
+    payment_status: os.payment_status,
+    paymentMethods: (pms ?? []) as OsPaymentData["paymentMethods"],
+  }
+}
+
+export async function payServiceOrderAction(
+  osId: string,
+  entries: OsPaymentEntry[]
+): Promise<ActionState> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+  if (!entries.length) return { error: "Selecione a forma de pagamento" }
+
+  const { data: os } = await ctx.supabase
+    .from("service_orders")
+    .select("total, payment_status")
+    .eq("id", osId)
+    .eq("company_id", ctx.profile.company_id)
+    .single()
+
+  if (!os) return { error: "OS não encontrada" }
+  if (os.payment_status === "pago") return { error: "OS já está paga" }
+
+  const now = new Date().toISOString()
+  const totalPaid = entries.reduce((s, e) => s + e.amount, 0)
+
+  const { error } = await ctx.supabase.from("payments").insert(
+    entries.map((e) => ({
+      company_id: ctx.profile.company_id,
+      sale_id: null,
+      service_order_id: osId,
+      method: e.method,
+      amount: e.amount,
+      fee_amount: e.fee_amount,
+      installments: e.installments,
+      paid_at: now,
+    }))
+  )
+
+  if (error) return { error: "Erro ao registrar pagamento" }
+
+  const payment_status = totalPaid >= os.total ? "pago" : "parcial"
+  await ctx.supabase
+    .from("service_orders")
+    .update({ payment_status })
+    .eq("id", osId)
+    .eq("company_id", ctx.profile.company_id)
+
+  revalidatePath(`/oficina/${osId}`)
+  return { success: payment_status === "pago" ? "Pagamento registrado" : "Pagamento parcial registrado" }
+}

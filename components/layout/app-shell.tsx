@@ -9,9 +9,10 @@ interface AppShellProps {
   children: React.ReactNode
   profile: Profile
   companyName?: string | null
+  lowStockCount?: number
 }
 
-export function AppShell({ children, profile, companyName }: AppShellProps) {
+export function AppShell({ children, profile, companyName, lowStockCount = 0 }: AppShellProps) {
   const [collapsed, setCollapsed] = React.useState(false)
 
   return (
@@ -20,6 +21,7 @@ export function AppShell({ children, profile, companyName }: AppShellProps) {
         collapsed={collapsed}
         onToggle={() => setCollapsed((v) => !v)}
         companyName={companyName ?? undefined}
+        lowStockCount={lowStockCount}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         <AppHeader profile={profile} />

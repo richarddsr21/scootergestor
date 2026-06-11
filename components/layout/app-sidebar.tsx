@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Zap,
   Truck,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -31,9 +32,10 @@ const navGroups = [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { title: "Clientes", href: "/clientes", icon: Users },
       { title: "Produtos", href: "/produtos", icon: Package },
-      { title: "Estoque", href: "/estoque", icon: Boxes, badge: true },
+      { title: "Estoque", href: "/estoque", icon: Boxes },
       { title: "Vendas", href: "/vendas", icon: ShoppingCart },
       { title: "Oficina", href: "/oficina", icon: Wrench },
+      { title: "Orçamentos", href: "/oficina/orcamentos", icon: FileText },
     ],
   },
   {
@@ -57,10 +59,22 @@ interface AppSidebarProps {
   collapsed: boolean
   onToggle: () => void
   companyName?: string
+  lowStockCount?: number
 }
 
-export function AppSidebar({ collapsed, onToggle, companyName }: AppSidebarProps) {
+export function AppSidebar({ collapsed, onToggle, companyName, lowStockCount = 0 }: AppSidebarProps) {
   const pathname = usePathname()
+  const allItems = navGroups.flatMap((g) => g.items)
+
+  function isActiveItem(href: string) {
+    if (pathname !== href && !pathname.startsWith(href + "/")) return false
+    return !allItems.some(
+      (other) =>
+        other.href !== href &&
+        other.href.startsWith(href + "/") &&
+        (pathname === other.href || pathname.startsWith(other.href + "/"))
+    )
+  }
 
   return (
     <TooltipProvider>
@@ -102,8 +116,7 @@ export function AppSidebar({ collapsed, onToggle, companyName }: AppSidebarProps
                 )}
 
                 {group.items.map((item) => {
-                  const isActive =
-                    pathname === item.href || pathname.startsWith(item.href + "/")
+                  const isActive = isActiveItem(item.href)
                   const Icon = item.icon
 
                   if (collapsed) {
@@ -120,7 +133,7 @@ export function AppSidebar({ collapsed, onToggle, companyName }: AppSidebarProps
                             )}
                           >
                             <Icon className="size-4" />
-                            {item.badge && (
+                            {item.href === "/estoque" && lowStockCount > 0 && (
                               <span className="absolute top-1 right-1 size-1.5 rounded-full bg-red-500" />
                             )}
                             <span className="sr-only">{item.title}</span>
@@ -144,7 +157,7 @@ export function AppSidebar({ collapsed, onToggle, companyName }: AppSidebarProps
                     >
                       <Icon className="size-4 shrink-0" />
                       <span className="truncate">{item.title}</span>
-                      {item.badge && (
+                      {item.href === "/estoque" && lowStockCount > 0 && (
                         <span className="ml-auto size-1.5 rounded-full bg-red-500 shrink-0" />
                       )}
                     </Link>

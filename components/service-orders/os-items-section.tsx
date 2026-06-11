@@ -53,8 +53,9 @@ function ItemForm({ item, osId, products, onClose }: {
   }, [state, onClose])
 
   function handleProductSelect(productId: string) {
-    setSelectedProduct(productId)
-    const p = products.find(p => p.id === productId)
+    const realId = productId === "none" ? "" : productId
+    setSelectedProduct(realId)
+    const p = products.find(p => p.id === realId)
     if (p) setUnitPrice(p.sale_price)
   }
 
@@ -80,10 +81,10 @@ function ItemForm({ item, osId, products, onClose }: {
 
         <div className="space-y-1.5">
           <Label>Produto (opcional)</Label>
-          <Select value={selectedProduct} onValueChange={handleProductSelect}>
+          <Select value={selectedProduct || "none"} onValueChange={handleProductSelect}>
             <SelectTrigger><SelectValue placeholder="Selecionar produto..." /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Nenhum</SelectItem>
+              <SelectItem value="none">Nenhum</SelectItem>
               {products.map(p => (
                 <SelectItem key={p.id} value={p.id}>{p.name} ({fmt(p.sale_price)})</SelectItem>
               ))}

@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Plus, Bike, Wrench, Phone, Mail, MapPin, FileText } from "lucide-react"
+import { Pencil, Plus, Phone, Mail, MapPin, FileText } from "lucide-react"
 import { VehiclesSection } from "@/components/customers/vehicles-section"
+import { ClienteDetalheExportButton } from "@/components/customers/cliente-detalhe-export-button"
 import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS } from "@/lib/constants"
 
 function fmtDate(d: string) {
@@ -37,6 +38,7 @@ export default async function ClienteDetailPage({
     { data: customer },
     { data: vehicles },
     { data: serviceOrders },
+    { data: settings },
   ] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).eq("company_id", cid).single(),
     supabase.from("vehicles").select("*").eq("customer_id", id).eq("company_id", cid).order("created_at"),
@@ -45,7 +47,10 @@ export default async function ClienteDetailPage({
       .eq("customer_id", id).eq("company_id", cid)
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase.from("company_settings").select("business_name").eq("company_id", cid).maybeSingle(),
   ])
+
+  const companyName = (settings as any)?.business_name ?? "ScooterGestor"
 
   if (!customer) notFound()
 
@@ -53,9 +58,16 @@ export default async function ClienteDetailPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <PageHeader title={customer.name} description="Detalhes do cliente" />
-        <Button asChild size="sm" variant="outline">
-          <Link href={`/clientes/${id}/editar`}><Pencil className="mr-1 h-4 w-4" />Editar</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ClienteDetalheExportButton
+            customerId={id}
+            customerName={customer.name}
+            companyName={companyName}
+          />
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/clientes/${id}/editar`}><Pencil className="mr-1 h-4 w-4" />Editar</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

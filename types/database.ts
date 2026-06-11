@@ -316,10 +316,11 @@ export interface Database {
           expected_delivery_at: string | null
           completed_at: string | null
           delivered_at: string | null
+          tracking_token: string
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database["public"]["Tables"]["service_orders"]["Row"], "id" | "created_at" | "updated_at" | "payment_status" | "labor_total" | "parts_total" | "discount" | "total" | "warranty_days" | "opened_at" | "technical_diagnosis" | "internal_notes" | "customer_notes" | "completed_at" | "delivered_at"> & {
+        Insert: Omit<Database["public"]["Tables"]["service_orders"]["Row"], "id" | "created_at" | "updated_at" | "payment_status" | "labor_total" | "parts_total" | "discount" | "total" | "warranty_days" | "opened_at" | "technical_diagnosis" | "internal_notes" | "customer_notes" | "completed_at" | "delivered_at" | "tracking_token"> & {
           payment_status?: string
           labor_total?: number
           parts_total?: number
@@ -702,6 +703,10 @@ export interface Database {
       expire_old_invitations: {
         Args: Record<string, never>
         Returns: null
+      }
+      get_os_tracking: {
+        Args: { p_token: string }
+        Returns: Json
       }
     }
     Enums: Record<never, never>

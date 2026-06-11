@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, User, Wrench } from "lucide-react"
+import { ArrowLeft, User, Wrench, FileText } from "lucide-react"
 import { OsStatusSelector } from "@/components/service-orders/os-status-selector"
 import { OsItemsSection } from "@/components/service-orders/os-items-section"
 import { OsChecklistSection } from "@/components/service-orders/os-checklist-section"
 import { OsNotesSection } from "@/components/service-orders/os-notes-section"
+import { OsPayButton } from "@/components/service-orders/os-pay-button"
 import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS } from "@/lib/constants"
 
 function fmt(n: number) {
@@ -43,6 +44,8 @@ export default async function OsDetailPage({
     { data: checklist },
     { data: statuses },
     { data: products },
+    { data: existingQuote },
+    { data: settings },
   ] = await Promise.all([
     supabase.from("service_orders")
       .select("*, customers(id, name, phone, whatsapp), service_order_statuses(id, name, color), vehicles(type, brand, model), profiles(name)")
@@ -64,6 +67,17 @@ export default async function OsDetailPage({
       .eq("company_id", cid)
       .eq("status", "active")
       .order("name"),
+    supabase.from("quotes")
+      .select("id, quote_number, status")
+      .eq("company_id", cid)
+      .eq("service_order_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("company_settings")
+      .select("business_name")
+      .eq("company_id", cid)
+      .maybeSingle(),
   ])
 
   if (!os) notFound()
@@ -91,6 +105,21 @@ export default async function OsDetailPage({
               style={{ backgroundColor: status.color }}>
               {status.name}
             </span>
+          )}
+          {existingQuote ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/oficina/orcamentos/${existingQuote.id}`}>
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                {existingQuote.quote_number}
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/oficina/orcamentos/nova?os_id=${id}`}>
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                Gerar orçamento
+              </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -146,7 +175,16 @@ export default async function OsDetailPage({
           <Card>
             <CardHeader><CardTitle className="text-sm">Alterar status</CardTitle></CardHeader>
             <CardContent>
-              <OsStatusSelector osId={id} currentStatusId={status?.id ?? ""} statuses={statuses ?? []} />
+              <OsStatusSelector
+                osId={id}
+                currentStatusId={status?.id ?? ""}
+                statuses={statuses ?? []}
+                customerName={customer?.name}
+                customerWhatsapp={customer?.whatsapp ?? customer?.phone}
+                orderNumber={os.order_number}
+                trackingToken={(os as any).tracking_token ?? null}
+                storeName={(settings as any)?.business_name ?? "ScooterGestor"}
+              />
             </CardContent>
           </Card>
 
@@ -172,6 +210,11 @@ export default async function OsDetailPage({
                 <span>Total</span>
                 <span className="text-emerald-600">{fmt(os.total ?? 0)}</span>
               </div>
+              {os.payment_status !== "pago" && (
+                <div className="pt-2">
+                  <OsPayButton osId={id} />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
