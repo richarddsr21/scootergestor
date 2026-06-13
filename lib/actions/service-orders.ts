@@ -407,7 +407,7 @@ export async function payServiceOrderAction(
 
   const payment_status = totalPaid >= os.total ? "pago" : "parcial"
 
-  const updates: Record<string, unknown> = { payment_status }
+  const updates: { payment_status: string; status_id?: string; completed_at?: string; delivered_at?: string } = { payment_status }
 
   if (payment_status === "pago") {
     const { data: entregueStatus } = await ctx.supabase
