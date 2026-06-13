@@ -25,13 +25,32 @@ const METHOD_COLORS: Record<string, string> = {
   outro: "#9ca3af",
 }
 
+const PERIODO_LABELS: Record<string, string> = {
+  hoje: "Hoje",
+  "7d": "Últimos 7 dias",
+  "30d": "Últimos 30 dias",
+  "3m": "Últimos 3 meses",
+  "6m": "Últimos 6 meses",
+  "12m": "Últimos 12 meses",
+  all: "Todo período",
+}
+
 export default async function RelatoriosPage({
   searchParams,
 }: {
   searchParams: Promise<{ periodo?: string }>
 }) {
-  const { periodo } = await searchParams
-  const months = Math.max(1, Math.min(12, Number(periodo ?? "6")))
+  const { periodo: periodoParam } = await searchParams
+
+  // Handle legacy "3", "6", "12" values from old URLs
+  const rawPeriodo = periodoParam ?? "6m"
+  const periodo =
+    rawPeriodo === "3" ? "3m" :
+    rawPeriodo === "6" ? "6m" :
+    rawPeriodo === "12" ? "12m" :
+    rawPeriodo
+
+  const periodoLabel = PERIODO_LABELS[periodo] ?? "Período selecionado"
 
   const user = await getAuthUser()
   if (!user) redirect("/login")
@@ -41,11 +60,47 @@ export default async function RelatoriosPage({
 
   const cid = profile.company_id
   const supabase = await createClient()
-
   const now = new Date()
-  const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1)
-    .toISOString()
-    .slice(0, 10)
+
+  // ── Compute date range ────────────────────────────────────────────────────────
+  let startDate: string
+  let chartUnit: "day" | "month"
+  let chartCount: number // days or months; 0 = dynamic (all)
+
+  if (periodo === "hoje") {
+    startDate = now.toISOString().slice(0, 10)
+    chartUnit = "day"
+    chartCount = 1
+  } else if (periodo === "7d") {
+    const d = new Date(now)
+    d.setDate(d.getDate() - 6)
+    startDate = d.toISOString().slice(0, 10)
+    chartUnit = "day"
+    chartCount = 7
+  } else if (periodo === "30d") {
+    const d = new Date(now)
+    d.setDate(d.getDate() - 29)
+    startDate = d.toISOString().slice(0, 10)
+    chartUnit = "day"
+    chartCount = 30
+  } else if (periodo === "3m") {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().slice(0, 10)
+    chartUnit = "month"
+    chartCount = 3
+  } else if (periodo === "12m") {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString().slice(0, 10)
+    chartUnit = "month"
+    chartCount = 12
+  } else if (periodo === "all") {
+    startDate = "2000-01-01"
+    chartUnit = "month"
+    chartCount = 0
+  } else {
+    // default: 6m
+    startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().slice(0, 10)
+    chartUnit = "month"
+    chartCount = 6
+  }
 
   const [
     { data: paymentsRaw },
@@ -118,24 +173,71 @@ export default async function RelatoriosPage({
     .sort((a, b) => b.total - a.total)
     .slice(0, 10)
 
-  // ── Chart: payments by month ────────────────────────────────────────────────
-  const monthMap: Record<string, { mes: string; os: number; vendas: number }> = {}
-  for (let i = 0; i < months; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - months + 1 + i, 1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-    monthMap[key] = {
-      mes: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
-      os: 0,
-      vendas: 0,
+  // ── Chart data ──────────────────────────────────────────────────────────────
+  let chartData: { mes: string; os: number; vendas: number }[]
+
+  if (chartUnit === "day") {
+    const dayMap: Record<string, { mes: string; os: number; vendas: number }> = {}
+    for (let i = 0; i < chartCount; i++) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - (chartCount - 1) + i)
+      const key = d.toISOString().slice(0, 10)
+      dayMap[key] = {
+        mes: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+        os: 0,
+        vendas: 0,
+      }
     }
+    for (const p of payments) {
+      const key = (p.paid_at ?? "").slice(0, 10)
+      if (!dayMap[key]) continue
+      if (p.service_order_id) dayMap[key].os += p.amount
+      else if (p.sale_id) dayMap[key].vendas += p.amount
+    }
+    chartData = Object.values(dayMap)
+  } else {
+    const monthKeys: string[] = []
+
+    if (chartCount > 0) {
+      for (let i = 0; i < chartCount; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - chartCount + 1 + i, 1)
+        monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
+      }
+    } else {
+      // "all": build months from existing payment data
+      const allKeys = new Set<string>()
+      for (const p of payments) {
+        const k = (p.paid_at ?? "").slice(0, 7)
+        if (k) allKeys.add(k)
+      }
+      if (allKeys.size === 0) {
+        for (let i = 2; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
+        }
+      } else {
+        monthKeys.push(...Array.from(allKeys).sort())
+      }
+    }
+
+    const monthMap: Record<string, { mes: string; os: number; vendas: number }> = {}
+    for (const key of monthKeys) {
+      const [y, m] = key.split("-").map(Number)
+      const d = new Date(y, m - 1, 1)
+      monthMap[key] = {
+        mes: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
+        os: 0,
+        vendas: 0,
+      }
+    }
+    for (const p of payments) {
+      const key = (p.paid_at ?? "").slice(0, 7)
+      if (!monthMap[key]) continue
+      if (p.service_order_id) monthMap[key].os += p.amount
+      else if (p.sale_id) monthMap[key].vendas += p.amount
+    }
+    chartData = Object.values(monthMap)
   }
-  for (const p of payments) {
-    const key = (p.paid_at ?? "").slice(0, 7)
-    if (!monthMap[key]) continue
-    if (p.service_order_id) monthMap[key].os += p.amount
-    else if (p.sale_id) monthMap[key].vendas += p.amount
-  }
-  const chartData = Object.values(monthMap)
 
   // ── Payment methods ─────────────────────────────────────────────────────────
   const methodTotals: Record<string, { count: number; total: number }> = {}
@@ -183,7 +285,8 @@ export default async function RelatoriosPage({
     <div className="space-y-6">
       <PageHeader title="Relatórios" description="Visão analítica do seu negócio." />
       <RelatoriosClient
-        periodoMeses={months}
+        periodo={periodo}
+        periodoLabel={periodoLabel}
         companyName={(settings as any)?.business_name ?? "ScooterGestor"}
         totalPago={totalPago}
         totalVendasPago={totalVendasPago}

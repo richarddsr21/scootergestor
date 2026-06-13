@@ -43,7 +43,8 @@ interface MethodEntry {
 }
 
 interface Props {
-  periodoMeses: number
+  periodo: string
+  periodoLabel: string
   companyName: string
   totalPago: number
   totalVendasPago: number
@@ -97,7 +98,8 @@ function ChartTooltip({ active, payload, label }: any) {
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 export function RelatoriosClient({
-  periodoMeses,
+  periodo,
+  periodoLabel,
   companyName,
   totalPago,
   totalVendasPago,
@@ -131,7 +133,7 @@ export function RelatoriosClient({
       ])
       const blob = await pdf(
         RelatorioPDF({
-          periodoMeses, companyName, totalPago, totalVendasPago, totalOsPago,
+          periodoLabel, companyName, totalPago, totalVendasPago, totalOsPago,
           totalPendente, ticketMedio, clientesUnicos, chartData,
           methodData: methodData.map(({ label, count, total }) => ({ label, count, total })),
           topClients, topProducts, osSaude,
@@ -140,7 +142,7 @@ export function RelatoriosClient({
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `relatorio-${periodoMeses}meses.pdf`
+      a.download = `relatorio-${periodo}.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } catch (e) {
@@ -170,7 +172,7 @@ export function RelatoriosClient({
       ]
 
       banner(wsR, `${companyName} — Relatório Financeiro`, 6)
-      banner(wsR, `Período: últimos ${periodoMeses} meses  ·  Gerado em ${gerado}`, 6, {
+      banner(wsR, `Período: ${periodoLabel}  ·  Gerado em ${gerado}`, 6, {
         height: 20, size: 9, bold: false, color: C.lime,
       })
 
@@ -246,7 +248,7 @@ export function RelatoriosClient({
       wsSaude.columns = [{ width: 26 }, { width: 16 }, { width: 16 }]
 
       banner(wsSaude, "Saúde das Ordens de Serviço", 3)
-      banner(wsSaude, `Período: últimos ${periodoMeses} meses`, 3, { height: 20, size: 9, bold: false, color: C.lime })
+      banner(wsSaude, `Período: ${periodoLabel}`, 3, { height: 20, size: 9, bold: false, color: C.lime })
 
       section(wsSaude, "INDICADORES", 3)
       const saude = [
@@ -279,7 +281,7 @@ export function RelatoriosClient({
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `relatorio-${periodoMeses}meses.xlsx`
+      a.download = `relatorio-${periodo}.xlsx`
       a.click()
       URL.revokeObjectURL(url)
     } catch (e) {
@@ -291,16 +293,20 @@ export function RelatoriosClient({
   }
 
   const PERIODOS = [
-    { value: "3", label: "3 meses" },
-    { value: "6", label: "6 meses" },
-    { value: "12", label: "12 meses" },
+    { value: "hoje", label: "Hoje" },
+    { value: "7d",   label: "7 dias" },
+    { value: "30d",  label: "30 dias" },
+    { value: "3m",   label: "3 meses" },
+    { value: "6m",   label: "6 meses" },
+    { value: "12m",  label: "12 meses" },
+    { value: "all",  label: "Todo período" },
   ]
 
   const kpis = [
     {
       label: "Faturamento Total",
       value: fmt(totalPago),
-      sub: `${periodoMeses} meses`,
+      sub: periodoLabel,
       icon: TrendingUp,
       color: "text-emerald-600",
       bg: "bg-emerald-500/10",
@@ -360,7 +366,7 @@ export function RelatoriosClient({
             <Button
               key={p.value}
               size="sm"
-              variant={String(periodoMeses) === p.value ? "default" : "outline"}
+              variant={periodo === p.value ? "default" : "outline"}
               asChild
             >
               <Link href={buildUrl(p.value)}>{p.label}</Link>

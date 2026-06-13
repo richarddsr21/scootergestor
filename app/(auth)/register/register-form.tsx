@@ -20,10 +20,10 @@ function getPasswordStrength(password: string): number {
 }
 
 const strengthConfig = [
-  { color: "bg-red-500",      label: "Fraca",   textColor: "text-red-500" },
-  { color: "bg-orange-500",   label: "Regular", textColor: "text-orange-500" },
-  { color: "bg-yellow-400",   label: "Boa",     textColor: "text-yellow-500" },
-  { color: "bg-brand-green",  label: "Forte",   textColor: "text-brand-green" },
+  { color: "bg-red-500",     label: "Fraca",   textColor: "text-red-500" },
+  { color: "bg-orange-500",  label: "Regular", textColor: "text-orange-500" },
+  { color: "bg-yellow-400",  label: "Boa",     textColor: "text-yellow-500" },
+  { color: "bg-brand-green", label: "Forte",   textColor: "text-brand-green" },
 ]
 
 export function RegisterForm() {
@@ -66,9 +66,11 @@ export function RegisterForm() {
           </Alert>
         )}
         {state.success && (
-          <Alert className="py-3 border-brand-green/30 bg-brand-green/[0.07] text-emerald-800 animate-fade-in">
-            <CheckCircle2 className="size-4 text-brand-green" />
-            <AlertDescription>{state.success}</AlertDescription>
+          <Alert className="py-3 border-emerald-500/30 bg-emerald-500/10 animate-fade-in">
+            <CheckCircle2 className="size-4 text-emerald-500" />
+            <AlertDescription className="text-emerald-700 dark:text-emerald-300">
+              {state.success}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -83,7 +85,7 @@ export function RegisterForm() {
             type="text"
             placeholder="João Silva"
             autoComplete="name"
-            className="h-11 bg-white shadow-sm focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
+            className="h-11 bg-card border-border focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
             required
           />
         </div>
@@ -99,7 +101,7 @@ export function RegisterForm() {
             type="email"
             placeholder="seu@email.com"
             autoComplete="email"
-            className="h-11 bg-white shadow-sm focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
+            className="h-11 bg-card border-border focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
             required
           />
         </div>
@@ -118,7 +120,7 @@ export function RegisterForm() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 bg-white shadow-sm pr-10 focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
+              className="h-11 bg-card border-border pr-10 focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
               required
             />
             <button
@@ -164,7 +166,7 @@ export function RegisterForm() {
               type={showConfirmPassword ? "text" : "password"}
               placeholder="Repita a senha"
               autoComplete="new-password"
-              className="h-11 bg-white shadow-sm pr-10 focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
+              className="h-11 bg-card border-border pr-10 focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
               required
             />
             <button

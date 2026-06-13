@@ -101,9 +101,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* ─── Right panel (form) ─────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-brand-white relative">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-background relative">
         {/* Subtle radial top-light */}
-        <div className="absolute inset-0 [background-image:radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(14,165,233,0.05),transparent)] pointer-events-none" />
+        <div className="absolute inset-0 [background-image:radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(14,165,233,0.06),transparent)] pointer-events-none" />
 
         {/* Mobile logo */}
         <div className="lg:hidden mb-10 animate-fade-in">

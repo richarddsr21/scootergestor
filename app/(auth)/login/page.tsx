@@ -36,9 +36,11 @@ export default function LoginPage() {
           </Alert>
         )}
         {state.success && (
-          <Alert className="py-3 border-brand-green/30 bg-brand-green/[0.07] text-emerald-800 animate-fade-in">
-            <CheckCircle2 className="size-4 text-brand-green" />
-            <AlertDescription>{state.success}</AlertDescription>
+          <Alert className="py-3 border-emerald-500/30 bg-emerald-500/10 animate-fade-in">
+            <CheckCircle2 className="size-4 text-emerald-500" />
+            <AlertDescription className="text-emerald-700 dark:text-emerald-300">
+              {state.success}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -53,7 +55,7 @@ export default function LoginPage() {
             type="email"
             placeholder="seu@email.com"
             autoComplete="email"
-            className="h-11 bg-white shadow-sm focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
+            className="h-11 bg-card border-border focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
             required
           />
         </div>
@@ -78,7 +80,7 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               autoComplete="current-password"
-              className="h-11 bg-white shadow-sm pr-10 focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
+              className="h-11 bg-card border-border pr-10 focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:border-brand-blue transition-colors"
               required
             />
             <button
@@ -111,7 +113,7 @@ export default function LoginPage() {
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-brand-white px-3 text-muted-foreground uppercase tracking-wider">ou</span>
+            <span className="bg-background px-3 text-muted-foreground uppercase tracking-wider">ou</span>
           </div>
         </div>
 

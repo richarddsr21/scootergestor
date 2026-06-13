@@ -75,7 +75,7 @@ const s = StyleSheet.create({
 // ─── types ────────────────────────────────────────────────────────────────────
 
 export interface RelatorioPdfProps {
-  periodoMeses: number
+  periodoLabel: string
   companyName: string
   totalPago: number
   totalVendasPago: number
@@ -96,7 +96,7 @@ export interface RelatorioPdfProps {
 // ─── document ─────────────────────────────────────────────────────────────────
 
 export function RelatorioPDF({
-  periodoMeses,
+  periodoLabel,
   companyName,
   totalPago,
   totalVendasPago,
@@ -115,7 +115,7 @@ export function RelatorioPDF({
   })
 
   const kpis = [
-    { label: "Faturamento Total",  value: fmt(totalPago),        sub: `${periodoMeses} meses` },
+    { label: "Faturamento Total",  value: fmt(totalPago),        sub: periodoLabel },
     { label: "Receita de Vendas",  value: fmt(totalVendasPago),   sub: pct(totalVendasPago, totalPago) + " do total" },
     { label: "Receita de OS",      value: fmt(totalOsPago),       sub: pct(totalOsPago, totalPago) + " do total" },
     { label: "Ticket Médio",       value: fmt(ticketMedio),       sub: "por pagamento" },
@@ -135,7 +135,7 @@ export function RelatorioPDF({
           </View>
           <View style={s.headerRight}>
             <Text style={s.headerTitle}>Relatório Financeiro</Text>
-            <Text style={s.headerSub}>Período: últimos {periodoMeses} meses</Text>
+            <Text style={s.headerSub}>Período: {periodoLabel}</Text>
             <Text style={s.headerSub}>Gerado em {gerado}</Text>
             <View style={s.limeBar} />
           </View>
