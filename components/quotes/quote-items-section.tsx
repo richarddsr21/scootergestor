@@ -105,10 +105,10 @@ export function QuoteItemsSection({ quoteId, items, products, readonly }: Props)
 
               <div className="space-y-1">
                 <Label className="text-xs">Produto (opcional)</Label>
-                <Select name="product_id" value={selectedProduct} onValueChange={handleProductSelect}>
+                <Select name="product_id" value={selectedProduct} onValueChange={v => handleProductSelect(v === "none" ? "" : v)}>
                   <SelectTrigger><SelectValue placeholder="Produto do estoque..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Manual</SelectItem>
+                    <SelectItem value="none">Manual (sem vínculo)</SelectItem>
                     {products.map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}

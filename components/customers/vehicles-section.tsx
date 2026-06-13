@@ -36,15 +36,15 @@ function VehicleForm({ vehicle, customerId, onClose }: {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="v-type">Tipo *</Label>
-          <Input id="v-type" name="type" required defaultValue={vehicle?.type ?? ""} placeholder="Scooter, Patinete, Bike..." />
+          <Input id="v-type" name="type" required defaultValue={vehicle?.type ?? "Scooter Elétrica"} placeholder="Scooter Elétrica" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="v-brand">Marca</Label>
-          <Input id="v-brand" name="brand" defaultValue={vehicle?.brand ?? ""} placeholder="Xiaomi, Segway..." />
+          <Input id="v-brand" name="brand" defaultValue={vehicle?.brand ?? ""} placeholder="Ex: Garelli, Xiaomi, Voltz..." />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="v-model">Modelo</Label>
-          <Input id="v-model" name="model" defaultValue={vehicle?.model ?? ""} placeholder="M365, ES2..." />
+          <Input id="v-model" name="model" defaultValue={vehicle?.model ?? ""} placeholder="Ex: X11, X13, STREET..." />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="v-color">Cor</Label>
@@ -86,14 +86,14 @@ export function VehiclesSection({ vehicles, customerId }: { vehicles: Vehicle[];
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-sm">Veículos ({vehicles.length})</CardTitle>
+        <CardTitle className="text-sm">Scooters ({vehicles.length})</CardTitle>
         <Button size="sm" variant="outline" onClick={() => { setEditing(null); setOpen(true) }}>
           <Plus className="h-3 w-3 mr-1" />Adicionar
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
         {vehicles.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">Nenhum veículo cadastrado.</p>
+          <p className="text-xs text-muted-foreground text-center py-4">Nenhuma scooter cadastrada.</p>
         ) : (
           vehicles.map((v) => (
             <div key={v.id} className="flex items-start justify-between gap-2 p-2 rounded border bg-muted/20">
@@ -117,7 +117,7 @@ export function VehiclesSection({ vehicles, customerId }: { vehicles: Vehicle[];
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Remover veículo?</AlertDialogTitle>
+                      <AlertDialogTitle>Remover scooter?</AlertDialogTitle>
                       <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -141,7 +141,7 @@ export function VehiclesSection({ vehicles, customerId }: { vehicles: Vehicle[];
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar veículo" : "Adicionar veículo"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar scooter" : "Adicionar scooter"}</DialogTitle>
           </DialogHeader>
           <VehicleForm vehicle={editing ?? undefined} customerId={customerId} onClose={() => setOpen(false)} />
         </DialogContent>

@@ -164,7 +164,7 @@ export default async function GarantiaDetailPage({
 
             {(warranty.vehicles as any) && (
               <div className="pt-3 border-t">
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Veículo</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Scooter</p>
                 <p className="font-medium">
                   {[(warranty.vehicles as any).brand, (warranty.vehicles as any).model].filter(Boolean).join(" ") || (warranty.vehicles as any).type}
                 </p>

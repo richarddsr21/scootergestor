@@ -316,6 +316,10 @@ export interface Database {
           expected_delivery_at: string | null
           completed_at: string | null
           delivered_at: string | null
+          vehicle_brand: string | null
+          vehicle_model: string | null
+          vehicle_chassis: string | null
+          mileage_km: number | null
           tracking_token: string
           created_at: string
           updated_at: string
@@ -333,6 +337,10 @@ export interface Database {
           customer_notes?: string | null
           completed_at?: string | null
           delivered_at?: string | null
+          vehicle_brand?: string | null
+          vehicle_model?: string | null
+          vehicle_chassis?: string | null
+          mileage_km?: number | null
         }
         Update: Partial<Database["public"]["Tables"]["service_orders"]["Insert"]>
 

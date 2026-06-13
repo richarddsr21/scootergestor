@@ -72,6 +72,28 @@ export function NovaOsForm({ customers, technicians, defaultCustomerId }: Props)
           <Input id="expected_delivery_at" name="expected_delivery_at" type="date" />
         </div>
 
+        <div className="sm:col-span-2 border-t pt-4">
+          <p className="text-sm font-medium text-muted-foreground mb-3">Dados da scooter</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="vehicle_brand">Marca</Label>
+              <Input id="vehicle_brand" name="vehicle_brand" placeholder="Ex: Garelli, Xiaomi, Voltz..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="vehicle_model">Modelo</Label>
+              <Input id="vehicle_model" name="vehicle_model" placeholder="Ex: X11, X13, STREET..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="vehicle_chassis">Nº de chassi</Label>
+              <Input id="vehicle_chassis" name="vehicle_chassis" placeholder="Ex: 9C2JC30..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mileage_km">Quilometragem</Label>
+              <Input id="mileage_km" name="mileage_km" type="number" min="0" placeholder="Ex: 1250" />
+            </div>
+          </div>
+        </div>
+
         <div className="sm:col-span-2 space-y-1.5">
           <Label htmlFor="reported_problem">Problema relatado *</Label>
           <Textarea

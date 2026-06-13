@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  experimental: {
+    serverComponentsHmrCache: true,
+  },
 }
 
 export default nextConfig

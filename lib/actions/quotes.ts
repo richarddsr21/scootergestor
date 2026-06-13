@@ -113,6 +113,18 @@ const itemSchema = z.object({
   unit_price: z.coerce.number().nonnegative(),
 })
 
+async function recalcOsTotals(ctx: Awaited<ReturnType<typeof getCtx>>, osId: string) {
+  if (!ctx) return
+  const { data: osItems } = await ctx.supabase
+    .from("service_order_items").select("item_type, total").eq("service_order_id", osId)
+  if (!osItems) return
+  const labor_total = osItems.filter(i => i.item_type === "labor").reduce((s, i) => s + i.total, 0)
+  const parts_total = osItems.filter(i => i.item_type !== "labor").reduce((s, i) => s + i.total, 0)
+  await ctx.supabase.from("service_orders")
+    .update({ labor_total, parts_total, total: labor_total + parts_total })
+    .eq("id", osId).eq("company_id", ctx.profile.company_id)
+}
+
 export async function addQuoteItemAction(
   _prev: ActionState,
   formData: FormData
@@ -124,21 +136,47 @@ export async function addQuoteItemAction(
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const { quote_id, product_id, ...rest } = parsed.data
+  const resolvedProductId = product_id && product_id !== "" && product_id !== "none" ? product_id : null
   const total = rest.quantity * rest.unit_price
+
+  // Fetch quote (for service_order_id) and product cost in parallel
+  const [{ data: quote }, { data: product }] = await Promise.all([
+    ctx.supabase.from("quotes").select("service_order_id").eq("id", quote_id).eq("company_id", ctx.profile.company_id).single(),
+    resolvedProductId
+      ? ctx.supabase.from("products").select("cost_price").eq("id", resolvedProductId).single()
+      : Promise.resolve({ data: null }),
+  ])
 
   const { error } = await ctx.supabase.from("quote_items").insert({
     company_id: ctx.profile.company_id,
     quote_id,
-    product_id: product_id && product_id !== "" ? product_id : null,
+    product_id: resolvedProductId,
     ...rest,
     total,
   })
 
   if (error) return { error: "Erro ao adicionar item" }
 
-  const { data: items } = await ctx.supabase
+  // Sync to linked OS
+  if (quote?.service_order_id) {
+    await ctx.supabase.from("service_order_items").insert({
+      company_id: ctx.profile.company_id,
+      service_order_id: quote.service_order_id,
+      product_id: resolvedProductId,
+      item_type: rest.item_type,
+      description: rest.description,
+      quantity: rest.quantity,
+      unit_price: rest.unit_price,
+      cost_price: (product as any)?.cost_price ?? 0,
+      total,
+    })
+    await recalcOsTotals(ctx, quote.service_order_id)
+    revalidatePath(`/oficina/${quote.service_order_id}`)
+  }
+
+  const { data: quoteItems } = await ctx.supabase
     .from("quote_items").select("total").eq("quote_id", quote_id)
-  const subtotal = (items ?? []).reduce((s, i) => s + i.total, 0)
+  const subtotal = (quoteItems ?? []).reduce((s, i) => s + i.total, 0)
   await ctx.supabase.from("quotes").update({ subtotal, total: subtotal }).eq("id", quote_id)
 
   revalidatePath(`/oficina/orcamentos/${quote_id}`)
@@ -152,15 +190,38 @@ export async function deleteQuoteItemAction(
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
 
+  // Fetch item details + quote's service_order_id before deleting
+  const [{ data: item }, { data: quote }] = await Promise.all([
+    ctx.supabase.from("quote_items").select("description, item_type, product_id").eq("id", itemId).eq("company_id", ctx.profile.company_id).single(),
+    ctx.supabase.from("quotes").select("service_order_id").eq("id", quoteId).eq("company_id", ctx.profile.company_id).single(),
+  ])
+
   const { error } = await ctx.supabase
     .from("quote_items").delete()
     .eq("id", itemId).eq("company_id", ctx.profile.company_id)
 
   if (error) return { error: "Erro ao remover item" }
 
-  const { data: items } = await ctx.supabase
+  // Sync removal to linked OS — match by description in the same OS
+  if (item && quote?.service_order_id) {
+    const { data: osItems } = await ctx.supabase
+      .from("service_order_items")
+      .select("id")
+      .eq("service_order_id", quote.service_order_id)
+      .eq("company_id", ctx.profile.company_id)
+      .eq("description", item.description)
+      .limit(1)
+
+    if (osItems && osItems.length > 0) {
+      await ctx.supabase.from("service_order_items").delete().eq("id", osItems[0].id).eq("company_id", ctx.profile.company_id)
+    }
+    await recalcOsTotals(ctx, quote.service_order_id)
+    revalidatePath(`/oficina/${quote.service_order_id}`)
+  }
+
+  const { data: quoteItems } = await ctx.supabase
     .from("quote_items").select("total").eq("quote_id", quoteId)
-  const subtotal = (items ?? []).reduce((s, i) => s + i.total, 0)
+  const subtotal = (quoteItems ?? []).reduce((s, i) => s + i.total, 0)
   await ctx.supabase.from("quotes").update({ subtotal, total: subtotal }).eq("id", quoteId)
 
   revalidatePath(`/oficina/orcamentos/${quoteId}`)

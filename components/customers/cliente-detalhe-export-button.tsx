@@ -99,9 +99,9 @@ export function ClienteDetalheExportButton({ customerId, customerName, companyNa
       if (data.customer.zip_code) kv(wsR, "CEP",       data.customer.zip_code)
       if (data.customer.notes)    kv(wsR, "Observações", data.customer.notes)
 
-      // ── Aba 2: Veículos ───────────────────────────────────────────────────
+      // ── Aba 2: Scooters ───────────────────────────────────────────────────
       if (data.vehicles.length > 0) {
-        const wsV = wb.addWorksheet("Veículos")
+        const wsV = wb.addWorksheet("Scooters")
         table(wsV, [
           { header: "Tipo",        key: "type",    width: 14 },
           { header: "Marca",       key: "brand",   width: 16 },

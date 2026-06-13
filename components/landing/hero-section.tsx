@@ -83,7 +83,7 @@ const kpiCards = [
 const recentOs = [
   { id: "#0042", name: "Xiaomi Pro 2 · João S.", status: "Em manutenção", statusColor: "bg-violet-500/20 text-violet-400 border-violet-500/25" },
   { id: "#0041", name: "Patinete 48v · Ana M.", status: "Pronta p/ entrega", statusColor: "bg-brand-green/20 text-brand-green border-brand-green/25" },
-  { id: "#0040", name: "Honda PCX · Pedro L.", status: "Aguard. peça", statusColor: "bg-amber-500/20 text-amber-400 border-amber-500/25" },
+  { id: "#0040", name: "X13 STREET · Pedro L.", status: "Aguard. peça", statusColor: "bg-amber-500/20 text-amber-400 border-amber-500/25" },
 ]
 
 const chartBars = [38, 55, 48, 72, 61, 88, 74]

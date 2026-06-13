@@ -13,6 +13,7 @@ import { OsItemsSection } from "@/components/service-orders/os-items-section"
 import { OsChecklistSection } from "@/components/service-orders/os-checklist-section"
 import { OsNotesSection } from "@/components/service-orders/os-notes-section"
 import { OsPayButton } from "@/components/service-orders/os-pay-button"
+import { OsVehicleSection } from "@/components/service-orders/os-vehicle-section"
 import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS } from "@/lib/constants"
 
 function fmt(n: number) {
@@ -141,14 +142,18 @@ export default async function OsDetailPage({
             </CardContent>
           </Card>
 
-          {vehicle && (
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Veículo</CardTitle></CardHeader>
-              <CardContent className="text-sm">
-                <p>{[vehicle.brand, vehicle.model].filter(Boolean).join(" ") || vehicle.type}</p>
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Wrench className="h-4 w-4" />Scooter</CardTitle></CardHeader>
+            <CardContent>
+              <OsVehicleSection
+                osId={id}
+                vehicleBrand={(os as any).vehicle_brand ?? null}
+                vehicleModel={(os as any).vehicle_model ?? null}
+                vehicleChassis={(os as any).vehicle_chassis ?? null}
+                mileageKm={(os as any).mileage_km ?? null}
+              />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader><CardTitle className="text-sm">Detalhes</CardTitle></CardHeader>

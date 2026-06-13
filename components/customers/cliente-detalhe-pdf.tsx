@@ -205,9 +205,9 @@ export function ClienteDetalhePDF({ data, companyName }: Props) {
 
           {/* Vehicles */}
           <View style={s.col}>
-            <Text style={s.secTitle}>Veículos ({vehicles.length})</Text>
+            <Text style={s.secTitle}>Scooters ({vehicles.length})</Text>
             {vehicles.length === 0 ? (
-              <Text style={{ fontSize: 8, color: M }}>Nenhum veículo cadastrado.</Text>
+              <Text style={{ fontSize: 8, color: M }}>Nenhuma scooter cadastrada.</Text>
             ) : (
               vehicles.map((v) => (
                 <View key={v.id} style={s.vehicleCard}>

@@ -23,6 +23,10 @@ const createOsSchema = z.object({
   reported_problem: z.string().min(3, "Descreva o problema"),
   expected_delivery_at: z.string().optional(),
   internal_notes: z.string().optional(),
+  vehicle_brand: z.string().optional(),
+  vehicle_model: z.string().optional(),
+  vehicle_chassis: z.string().optional(),
+  mileage_km: z.coerce.number().int().nonnegative().optional(),
 })
 
 export async function createServiceOrderAction(
@@ -50,7 +54,7 @@ export async function createServiceOrderAction(
 
   const orderNumber = `OS-${String((count ?? 0) + 1).padStart(5, "0")}`
 
-  const { customer_id, vehicle_id, technician_id, expected_delivery_at, internal_notes, ...rest } = parsed.data
+  const { customer_id, vehicle_id, technician_id, expected_delivery_at, internal_notes, vehicle_brand, vehicle_model, vehicle_chassis, mileage_km, ...rest } = parsed.data
 
   const { data: os, error } = await ctx.supabase
     .from("service_orders")
@@ -65,6 +69,10 @@ export async function createServiceOrderAction(
       ...rest,
       expected_delivery_at: expected_delivery_at && expected_delivery_at !== "" ? expected_delivery_at : null,
       internal_notes: internal_notes?.trim() || null,
+      vehicle_brand: vehicle_brand?.trim() || null,
+      vehicle_model: vehicle_model?.trim() || null,
+      vehicle_chassis: vehicle_chassis?.trim() || null,
+      mileage_km: mileage_km ?? null,
     })
     .select("id")
     .single()
@@ -140,6 +148,7 @@ export async function updateServiceOrderStatusAction(
 
   revalidatePath(`/oficina/${osId}`)
   revalidatePath("/oficina")
+  revalidatePath("/oficina/orcamentos")
   return { success: "Status atualizado" }
 }
 
@@ -280,6 +289,37 @@ export async function updateOsNotesAction(
   return { success: "Nota salva" }
 }
 
+export async function updateOsVehicleInfoAction(
+  osId: string,
+  data: {
+    vehicle_brand: string
+    vehicle_model: string
+    vehicle_chassis: string
+    mileage_km: string
+  }
+): Promise<ActionState> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+
+  const mileage = data.mileage_km !== "" ? parseInt(data.mileage_km, 10) : null
+
+  const { error } = await ctx.supabase
+    .from("service_orders")
+    .update({
+      vehicle_brand: data.vehicle_brand.trim() || null,
+      vehicle_model: data.vehicle_model.trim() || null,
+      vehicle_chassis: data.vehicle_chassis.trim() || null,
+      mileage_km: mileage !== null && !isNaN(mileage) ? mileage : null,
+    })
+    .eq("id", osId)
+    .eq("company_id", ctx.profile.company_id)
+
+  if (error) return { error: "Erro ao salvar dados do veículo" }
+
+  revalidatePath(`/oficina/${osId}`)
+  return { success: "Dados do veículo salvos" }
+}
+
 // ─── payment ──────────────────────────────────────────────────────────────────
 
 export interface OsPaymentEntry {
@@ -366,12 +406,32 @@ export async function payServiceOrderAction(
   if (error) return { error: "Erro ao registrar pagamento" }
 
   const payment_status = totalPaid >= os.total ? "pago" : "parcial"
+
+  const updates: Record<string, unknown> = { payment_status }
+
+  if (payment_status === "pago") {
+    const { data: entregueStatus } = await ctx.supabase
+      .from("service_order_statuses")
+      .select("id")
+      .eq("company_id", ctx.profile.company_id)
+      .eq("slug", "entregue")
+      .maybeSingle()
+
+    if (entregueStatus) {
+      updates.status_id = entregueStatus.id
+      updates.completed_at = now
+      updates.delivered_at = now
+    }
+  }
+
   await ctx.supabase
     .from("service_orders")
-    .update({ payment_status })
+    .update(updates)
     .eq("id", osId)
     .eq("company_id", ctx.profile.company_id)
 
   revalidatePath(`/oficina/${osId}`)
+  revalidatePath("/oficina")
+  revalidatePath("/oficina/orcamentos")
   return { success: payment_status === "pago" ? "Pagamento registrado" : "Pagamento parcial registrado" }
 }

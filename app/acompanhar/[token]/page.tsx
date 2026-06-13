@@ -43,8 +43,14 @@ interface OsTrackingData {
   status_color: string | null
   customer_first_name: string | null
   vehicle_label: string | null
+  vehicle_model: string | null
+  total: number | null
   store_name: string | null
   store_whatsapp: string | null
+}
+
+function fmt(n: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
 }
 
 export default async function TrackingPage({
@@ -105,6 +111,23 @@ export default async function TrackingPage({
               </span>
             )}
           </div>
+
+          {(os.vehicle_model || os.total != null) && (
+            <div className="flex items-center gap-4 border-t pt-3 flex-wrap">
+              {os.vehicle_model && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground text-xs block">Modelo</span>
+                  <span className="font-medium">{os.vehicle_model}</span>
+                </div>
+              )}
+              {os.total != null && os.total > 0 && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground text-xs block">Valor</span>
+                  <span className="font-semibold text-emerald-600">{fmt(os.total)}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {os.reported_problem && (
             <p className="text-sm text-muted-foreground border-t pt-3">
