@@ -359,7 +359,7 @@ export default async function DashboardPage() {
                         </span>
                         <Badge
                           variant="secondary"
-                          className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${isOs ? "bg-violet-100 text-violet-700" : "bg-blue-100 text-blue-700"}`}
+                          className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${isOs ? "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300" : "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300"}`}
                         >
                           {isOs ? "OS" : "Venda"}
                         </Badge>

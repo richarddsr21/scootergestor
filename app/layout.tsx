@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Syne, Outfit, Geist_Mono } from "next/font/google"
 import { Toaster } from "sonner"
+import { ThemeProvider } from "@/components/providers/theme-provider"
 import "./globals.css"
 
 const syne = Syne({
@@ -46,8 +47,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${syne.variable} ${outfit.variable} ${geistMono.variable} antialiased`}>
-        {children}
-        <Toaster richColors position="top-right" />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+          {children}
+          <Toaster richColors position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { Search, LogOut, Settings, ChevronDown, User } from "lucide-react"
+import { Search, LogOut, Settings, ChevronDown, User, Sun, Moon } from "lucide-react"
 import { useTransition } from "react"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -18,6 +19,27 @@ import { ROLE_LABELS } from "@/lib/constants"
 import { logoutAction } from "@/lib/actions/auth"
 import type { Profile } from "@/types/app"
 import { NotificationBell } from "@/components/layout/notification-bell"
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => setMounted(true), [])
+  if (!mounted) return <div className="size-9" />
+
+  const isDark = theme === "dark"
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-9 text-muted-foreground hover:text-foreground"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      title={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
+    >
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+    </Button>
+  )
+}
 
 interface AppHeaderProps {
   profile?: Profile | null
@@ -48,6 +70,7 @@ export function AppHeader({ profile }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1.5 ml-auto">
+        <ThemeToggle />
         <NotificationBell />
 
         {/* User dropdown */}

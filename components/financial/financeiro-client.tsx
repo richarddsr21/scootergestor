@@ -191,7 +191,7 @@ export function FinanceiroClient({
                   <tr key={t.id} className="hover:bg-muted/50 transition-colors">
                     <td className="p-3">
                       <div className="flex items-center gap-2">
-                        <div className={`rounded-full p-1 ${t.type === "entrada" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                        <div className={`rounded-full p-1 ${t.type === "entrada" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300"}`}>
                           {t.type === "entrada" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                         </div>
                         <div>

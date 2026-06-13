@@ -124,7 +124,7 @@ export default async function ProdutoDetailPage({
                   {movements.map((m) => (
                     <div key={m.id} className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`rounded-full p-1.5 ${m.type === "entrada" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                        <div className={`rounded-full p-1.5 ${m.type === "entrada" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300"}`}>
                           {m.type === "entrada" ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                         </div>
                         <div>
