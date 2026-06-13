@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useActionState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -128,10 +129,13 @@ export function OsItemsSection({ osId, items, products }: {
   items: OsItem[]
   products: Product[]
 }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<OsItem | null>(null)
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
-  const subtotal = items.reduce((s, i) => s + i.total, 0)
+  const visibleItems = items.filter(i => !removedIds.has(i.id))
+  const subtotal = visibleItems.reduce((s, i) => s + i.total, 0)
 
   return (
     <Card>
@@ -142,7 +146,7 @@ export function OsItemsSection({ osId, items, products }: {
         </Button>
       </CardHeader>
       <CardContent className="p-0">
-        {items.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Nenhum item adicionado.</p>
         ) : (
           <>
@@ -158,7 +162,7 @@ export function OsItemsSection({ osId, items, products }: {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {items.map(item => (
+                {visibleItems.map(item => (
                   <tr key={item.id} className="hover:bg-muted/50">
                     <td className="p-3">{item.description}</td>
                     <td className="p-3 text-right hidden sm:table-cell text-muted-foreground text-xs">
@@ -186,9 +190,15 @@ export function OsItemsSection({ osId, items, products }: {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction onClick={async () => {
+                                setRemovedIds(prev => new Set([...prev, item.id]))
                                 const r = await deleteOsItemAction(item.id, osId)
-                                if (r.error) toast.error(r.error)
-                                else toast.success(r.success ?? "Removido")
+                                if (r.error) {
+                                  toast.error(r.error)
+                                  setRemovedIds(prev => { const next = new Set(prev); next.delete(item.id); return next })
+                                } else {
+                                  toast.success(r.success ?? "Removido")
+                                  router.refresh()
+                                }
                               }}>Remover</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

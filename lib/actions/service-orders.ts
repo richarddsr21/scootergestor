@@ -163,6 +163,14 @@ const itemSchema = z.object({
   cost_price: z.coerce.number().nonnegative().default(0),
 })
 
+async function recalcQuoteTotals(ctx: Awaited<ReturnType<typeof getCtx>>, quoteId: string) {
+  if (!ctx) return
+  const { data: items } = await ctx.supabase
+    .from("quote_items").select("total").eq("quote_id", quoteId)
+  const subtotal = (items ?? []).reduce((s, i) => s + i.total, 0)
+  await ctx.supabase.from("quotes").update({ subtotal, total: subtotal }).eq("id", quoteId)
+}
+
 export async function saveOsItemAction(
   _prev: ActionState,
   formData: FormData
@@ -175,22 +183,73 @@ export async function saveOsItemAction(
 
   const { id, product_id, service_order_id, ...rest } = parsed.data
   const total = rest.quantity * rest.unit_price
+  const resolvedProductId = product_id && product_id !== "" ? product_id : null
   const data = {
     company_id: ctx.profile.company_id,
     service_order_id,
-    product_id: product_id && product_id !== "" ? product_id : null,
+    product_id: resolvedProductId,
     ...rest,
     total,
   }
 
+  // Busca orçamento vinculado à OS (para sync)
+  const { data: linkedQuote } = await ctx.supabase
+    .from("quotes")
+    .select("id")
+    .eq("service_order_id", service_order_id)
+    .eq("company_id", ctx.profile.company_id)
+    .maybeSingle()
+
   if (id) {
+    // Busca descrição antiga para localizar o item correspondente no orçamento
+    const { data: oldItem } = await ctx.supabase
+      .from("service_order_items")
+      .select("description")
+      .eq("id", id)
+      .eq("company_id", ctx.profile.company_id)
+      .single()
+
     const { error } = await ctx.supabase
       .from("service_order_items").update({ ...data, total })
       .eq("id", id).eq("company_id", ctx.profile.company_id)
     if (error) return { error: "Erro ao atualizar item" }
+
+    // Sync para o orçamento vinculado
+    if (oldItem && linkedQuote) {
+      const { data: qItems } = await ctx.supabase
+        .from("quote_items")
+        .select("id")
+        .eq("quote_id", linkedQuote.id)
+        .eq("description", oldItem.description)
+        .limit(1)
+
+      if (qItems && qItems.length > 0) {
+        await ctx.supabase.from("quote_items")
+          .update({ item_type: rest.item_type, description: rest.description, product_id: resolvedProductId, quantity: rest.quantity, unit_price: rest.unit_price, total })
+          .eq("id", qItems[0].id)
+        await recalcQuoteTotals(ctx, linkedQuote.id)
+        revalidatePath(`/oficina/orcamentos/${linkedQuote.id}`)
+      }
+    }
   } else {
     const { error } = await ctx.supabase.from("service_order_items").insert(data)
     if (error) return { error: "Erro ao adicionar item" }
+
+    // Sync para o orçamento vinculado
+    if (linkedQuote) {
+      await ctx.supabase.from("quote_items").insert({
+        company_id: ctx.profile.company_id,
+        quote_id: linkedQuote.id,
+        product_id: resolvedProductId,
+        item_type: rest.item_type,
+        description: rest.description,
+        quantity: rest.quantity,
+        unit_price: rest.unit_price,
+        total,
+      })
+      await recalcQuoteTotals(ctx, linkedQuote.id)
+      revalidatePath(`/oficina/orcamentos/${linkedQuote.id}`)
+    }
   }
 
   // Recalculate OS totals
@@ -219,13 +278,35 @@ export async function deleteOsItemAction(
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
 
+  // Busca descrição do item e orçamento vinculado antes de deletar
+  const [{ data: osItem }, { data: linkedQuote }] = await Promise.all([
+    ctx.supabase.from("service_order_items").select("description").eq("id", id).eq("company_id", ctx.profile.company_id).single(),
+    ctx.supabase.from("quotes").select("id").eq("service_order_id", serviceOrderId).eq("company_id", ctx.profile.company_id).maybeSingle(),
+  ])
+
   const { error } = await ctx.supabase
     .from("service_order_items").delete()
     .eq("id", id).eq("company_id", ctx.profile.company_id)
 
   if (error) return { error: "Erro ao remover item" }
 
-  // Recalculate totals
+  // Sync remoção para o orçamento vinculado
+  if (osItem && linkedQuote) {
+    const { data: qItems } = await ctx.supabase
+      .from("quote_items")
+      .select("id")
+      .eq("quote_id", linkedQuote.id)
+      .eq("description", osItem.description)
+      .limit(1)
+
+    if (qItems && qItems.length > 0) {
+      await ctx.supabase.from("quote_items").delete().eq("id", qItems[0].id).eq("company_id", ctx.profile.company_id)
+    }
+    await recalcQuoteTotals(ctx, linkedQuote.id)
+    revalidatePath(`/oficina/orcamentos/${linkedQuote.id}`)
+  }
+
+  // Recalculate OS totals
   const { data: items } = await ctx.supabase
     .from("service_order_items")
     .select("item_type, total")

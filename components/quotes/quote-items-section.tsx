@@ -1,6 +1,7 @@
 "use client"
 
 import { useActionState, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -46,10 +47,12 @@ function fmt(n: number) {
 const INIT = { error: undefined, success: undefined }
 
 export function QuoteItemsSection({ quoteId, items, products, readonly }: Props) {
+  const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [state, action, pending] = useActionState(addQuoteItemAction, INIT)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState("")
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (state.success) {
@@ -62,9 +65,16 @@ export function QuoteItemsSection({ quoteId, items, products, readonly }: Props)
 
   async function handleDelete(id: string) {
     setDeleting(id)
+    setRemovedIds(prev => new Set([...prev, id]))
+
     const result = await deleteQuoteItemAction(id, quoteId)
-    if (result.error) toast.error(result.error)
-    else toast.success(result.success ?? "Removido")
+    if (result.error) {
+      toast.error(result.error)
+      setRemovedIds(prev => { const next = new Set(prev); next.delete(id); return next })
+    } else {
+      toast.success(result.success ?? "Removido")
+      router.refresh()
+    }
     setDeleting(null)
   }
 
@@ -72,7 +82,8 @@ export function QuoteItemsSection({ quoteId, items, products, readonly }: Props)
     setSelectedProduct(productId)
   }
 
-  const total = items.reduce((s, i) => s + i.total, 0)
+  const visibleItems = items.filter(i => !removedIds.has(i.id))
+  const total = visibleItems.reduce((s, i) => s + i.total, 0)
 
   return (
     <Card>
@@ -155,13 +166,13 @@ export function QuoteItemsSection({ quoteId, items, products, readonly }: Props)
           </form>
         )}
 
-        {items.length === 0 && !showForm && (
+        {visibleItems.length === 0 && !showForm && (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhum item adicionado.</p>
         )}
 
-        {items.length > 0 && (
+        {visibleItems.length > 0 && (
           <div className="space-y-1">
-            {items.map(item => (
+            {visibleItems.map(item => (
               <div key={item.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50 text-sm">
                 <span className="text-xs text-muted-foreground w-16 shrink-0">{ITEM_TYPE_LABELS[item.item_type] ?? item.item_type}</span>
                 <span className="flex-1 truncate">{item.description}</span>

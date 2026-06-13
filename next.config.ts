@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname),
   },
   experimental: {
-    serverComponentsHmrCache: true,
+    serverComponentsHmrCache: false,
   },
 }
 
