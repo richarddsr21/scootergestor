@@ -51,8 +51,8 @@ function VehicleForm({ vehicle, customerId, onClose }: {
           <Input id="v-color" name="color" defaultValue={vehicle?.color ?? ""} placeholder="Preto, Branco..." />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="v-serial">Número de série</Label>
-          <Input id="v-serial" name="serial_number" defaultValue={vehicle?.serial_number ?? ""} placeholder="Serial..." />
+          <Label htmlFor="v-serial">Nº de chassi</Label>
+          <Input id="v-serial" name="serial_number" defaultValue={vehicle?.serial_number ?? ""} placeholder="Ex: 9C2JC30..." />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="v-battery">Tipo de bateria</Label>
