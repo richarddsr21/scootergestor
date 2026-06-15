@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import type { ActionState } from "./auth"
+import { insertCashMovementsForPayment } from "./cash"
 
 async function getCtx() {
   const supabase = await createClient()
@@ -485,6 +486,21 @@ export async function payServiceOrderAction(
   )
 
   if (error) return { error: "Erro ao registrar pagamento" }
+
+  // Registra no caixa aberto (se houver) — falha silenciosa para não bloquear OS
+  const { data: osInfo } = await ctx.supabase
+    .from("service_orders").select("order_number").eq("id", osId).single()
+  if (osInfo) {
+    await insertCashMovementsForPayment(
+      ctx.supabase,
+      ctx.profile.company_id,
+      ctx.profile.id,
+      "service_order",
+      osId,
+      `OS ${osInfo.order_number}`,
+      entries.map((e) => ({ method: e.method, amount: e.amount }))
+    ).catch(() => {})
+  }
 
   const payment_status = totalPaid >= os.total ? "pago" : "parcial"
 

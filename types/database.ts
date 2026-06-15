@@ -528,6 +528,67 @@ export interface Database {
 
         Relationships: never[]
       }
+      cash_registers: {
+        Row: {
+          id: string
+          company_id: string
+          opened_by: string
+          opened_at: string
+          closed_by: string | null
+          closed_at: string | null
+          initial_amount: number
+          actual_cash_amount: number | null
+          status: string
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          company_id: string
+          opened_by: string
+          initial_amount: number
+          opened_at?: string
+          status?: string
+          notes?: string | null
+        }
+        Update: Partial<{
+          closed_by: string | null
+          closed_at: string | null
+          actual_cash_amount: number | null
+          status: string
+          notes: string | null
+        }>
+
+        Relationships: never[]
+      }
+      cash_movements: {
+        Row: {
+          id: string
+          company_id: string
+          cash_register_id: string
+          type: string
+          payment_method: string
+          amount: number
+          description: string | null
+          source_type: string | null
+          source_id: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          company_id: string
+          cash_register_id: string
+          type: string
+          payment_method: string
+          amount: number
+          description?: string | null
+          source_type?: string | null
+          source_id?: string | null
+          created_by?: string | null
+        }
+        Update: never
+
+        Relationships: never[]
+      }
       services: {
         Row: {
           id: string

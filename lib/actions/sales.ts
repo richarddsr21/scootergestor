@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import type { ActionState } from "./auth"
+import { insertCashMovementsForPayment } from "./cash"
 
 async function getCtx() {
   const supabase = await createClient()
@@ -134,6 +135,17 @@ export async function confirmSaleAction(
       paid_at: new Date().toISOString(),
     })
   ))
+
+  // Registra no caixa aberto (se houver) — falha silenciosa
+  await insertCashMovementsForPayment(
+    ctx.supabase,
+    ctx.profile.company_id,
+    ctx.profile.id,
+    "sale",
+    sale.id,
+    `Venda ${saleNumber}`,
+    paymentEntries.map((e) => ({ method: e.method, amount: e.amount }))
+  ).catch(() => {})
 
   revalidatePath("/vendas")
   revalidatePath("/dashboard")

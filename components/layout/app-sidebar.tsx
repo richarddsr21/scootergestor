@@ -19,6 +19,7 @@ import {
   Zap,
   Truck,
   FileText,
+  Landmark,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -42,6 +43,7 @@ const navGroups = [
     label: "Controle",
     items: [
       { title: "Garantias", href: "/garantias", icon: ShieldCheck },
+      { title: "Caixa", href: "/caixa", icon: Landmark },
       { title: "Financeiro", href: "/financeiro", icon: DollarSign },
       { title: "Relatórios", href: "/relatorios", icon: BarChart3 },
     ],
