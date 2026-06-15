@@ -2,21 +2,50 @@ import { createClient } from "@/lib/supabase/server"
 import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
-import { PageHeader } from "@/components/layout/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Plus, Phone, Mail, MapPin, FileText } from "lucide-react"
+import { Pencil, Plus, Phone, Mail, MapPin, FileText, Bike, Wrench, DollarSign, CalendarDays, MessageCircle } from "lucide-react"
 import { VehiclesSection } from "@/components/customers/vehicles-section"
 import { ClienteDetalheExportButton } from "@/components/customers/cliente-detalhe-export-button"
 import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS } from "@/lib/constants"
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("pt-BR")
+  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+function fmtDateTime(d: string) {
+  return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
 }
 
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("")
+}
+
+const AVATAR_COLORS = [
+  "from-blue-500 to-blue-600",
+  "from-violet-500 to-violet-600",
+  "from-emerald-500 to-emerald-600",
+  "from-amber-500 to-amber-600",
+  "from-rose-500 to-rose-600",
+  "from-cyan-500 to-cyan-600",
+  "from-indigo-500 to-indigo-600",
+  "from-teal-500 to-teal-600",
+]
+
+function avatarColor(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 export default async function ClienteDetailPage({
@@ -42,71 +71,201 @@ export default async function ClienteDetailPage({
   ] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).eq("company_id", cid).single(),
     supabase.from("vehicles").select("*").eq("customer_id", id).eq("company_id", cid).order("created_at"),
-    supabase.from("service_orders")
-      .select("id, order_number, priority, reported_problem, total, created_at, service_order_statuses(name, color)")
-      .eq("customer_id", id).eq("company_id", cid)
+    supabase
+      .from("service_orders")
+      .select("id, order_number, priority, reported_problem, total, created_at, delivered_at, service_order_statuses(name, color)")
+      .eq("customer_id", id)
+      .eq("company_id", cid)
       .order("created_at", { ascending: false })
-      .limit(20),
+      .limit(50),
     supabase.from("company_settings").select("business_name").eq("company_id", cid).maybeSingle(),
   ])
 
-  const companyName = (settings as any)?.business_name ?? "ScooterGestor"
-
   if (!customer) notFound()
+
+  const companyName = (settings as any)?.business_name ?? "ScooterGestor"
+  const totalGasto = (serviceOrders ?? []).reduce((sum, os: any) => sum + (os.total ?? 0), 0)
+  const osAbertasCount = (serviceOrders ?? []).filter((os: any) => !os.delivered_at).length
+  const color = avatarColor(customer.name)
+
+  const whatsappLink = (customer.whatsapp || customer.phone)
+    ? `https://wa.me/55${(customer.whatsapp ?? customer.phone ?? "").replace(/\D/g, "")}`
+    : null
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <PageHeader title={customer.name} description="Detalhes do cliente" />
-        <div className="flex items-center gap-2">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white text-xl font-bold select-none shadow-md ${color}`}
+          >
+            {initials(customer.name)}
+          </div>
+          <div>
+            <h1 className="font-display font-bold text-xl text-foreground tracking-tight">{customer.name}</h1>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {customer.city && (
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {[customer.city, customer.state].filter(Boolean).join(", ")}
+                </span>
+              )}
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" />
+                cliente desde {fmtDate(customer.created_at)}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {whatsappLink && (
+            <Button asChild size="sm" variant="outline" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/50">
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="mr-1.5 h-4 w-4" />WhatsApp
+              </a>
+            </Button>
+          )}
           <ClienteDetalheExportButton
             customerId={id}
             customerName={customer.name}
             companyName={companyName}
           />
           <Button asChild size="sm" variant="outline">
-            <Link href={`/clientes/${id}/editar`}><Pencil className="mr-1 h-4 w-4" />Editar</Link>
+            <Link href={`/clientes/${id}/editar`}>
+              <Pencil className="mr-1 h-4 w-4" />Editar
+            </Link>
           </Button>
         </div>
       </div>
 
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="border-border/60">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Total gasto</p>
+                <p className="font-display font-bold text-base tabular-nums">{fmt(totalGasto)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10">
+                <Wrench className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Total de OS</p>
+                <p className="font-display font-bold text-base tabular-nums">{serviceOrders?.length ?? 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
+                <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">OS em aberto</p>
+                <p className="font-display font-bold text-base tabular-nums">{osAbertasCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
+                <Bike className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Scooters</p>
+                <p className="font-display font-bold text-base tabular-nums">{vehicles?.length ?? 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main content */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-1">
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Contato</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm">
+          {/* Contact card */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Informações de contato</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               {customer.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{customer.phone}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted shrink-0">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Telefone</p>
+                    <p className="text-sm font-medium">{customer.phone}</p>
+                  </div>
                 </div>
               )}
               {customer.whatsapp && customer.whatsapp !== customer.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{customer.whatsapp} (WhatsApp)</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40 shrink-0">
+                    <MessageCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">WhatsApp</p>
+                    <p className="text-sm font-medium">{customer.whatsapp}</p>
+                  </div>
                 </div>
               )}
               {customer.email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="break-all">{customer.email}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted shrink-0">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">E-mail</p>
+                    <p className="text-sm font-medium break-all">{customer.email}</p>
+                  </div>
                 </div>
               )}
               {(customer.address || customer.city) && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{[customer.address, customer.city, customer.state].filter(Boolean).join(", ")}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted shrink-0">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Endereço</p>
+                    <p className="text-sm font-medium">
+                      {[customer.address, customer.city, customer.state].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
                 </div>
               )}
               {customer.cpf_cnpj && (
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{customer.cpf_cnpj}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted shrink-0">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">CPF / CNPJ</p>
+                    <p className="text-sm font-medium font-mono">{customer.cpf_cnpj}</p>
+                  </div>
                 </div>
               )}
               {customer.notes && (
-                <p className="text-muted-foreground pt-2 border-t">{customer.notes}</p>
+                <div className="pt-3 border-t">
+                  <p className="text-xs text-muted-foreground mb-1">Observações</p>
+                  <p className="text-sm text-muted-foreground">{customer.notes}</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -114,40 +273,69 @@ export default async function ClienteDetailPage({
           <VehiclesSection vehicles={vehicles ?? []} customerId={id} />
         </div>
 
+        {/* OS history */}
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="border-border/60">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-sm">Ordens de serviço</CardTitle>
+              <div>
+                <CardTitle className="text-sm">Histórico de OS</CardTitle>
+                {(serviceOrders?.length ?? 0) > 0 && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {serviceOrders!.length} ordem{serviceOrders!.length !== 1 ? "s" : ""} no total
+                  </p>
+                )}
+              </div>
               <Button asChild size="sm" variant="outline">
-                <Link href={`/oficina/nova?cliente=${id}`}><Plus className="mr-1 h-3 w-3" />Nova OS</Link>
+                <Link href={`/oficina/nova?cliente=${id}`}>
+                  <Plus className="mr-1 h-3 w-3" />Nova OS
+                </Link>
               </Button>
             </CardHeader>
             <CardContent className="p-0">
               {(!serviceOrders || serviceOrders.length === 0) ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Nenhuma OS encontrada.</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-3">
+                    <Wrench className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium">Nenhuma OS encontrada</p>
+                  <p className="text-xs text-muted-foreground mt-1">Crie a primeira ordem de serviço para este cliente.</p>
+                </div>
               ) : (
-                <div className="divide-y">
+                <div className="divide-y divide-border/60">
                   {serviceOrders.map((os: any) => (
-                    <Link key={os.id} href={`/oficina/${os.id}`}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors">
-                      <div className="min-w-0">
+                    <Link
+                      key={os.id}
+                      href={`/oficina/${os.id}`}
+                      className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors group"
+                    >
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">{os.order_number}</span>
+                          <span className="text-sm font-semibold font-mono">{os.order_number}</span>
                           {os.service_order_statuses && (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                              style={{ backgroundColor: os.service_order_statuses.color }}>
+                            <span
+                              className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
+                              style={{ backgroundColor: os.service_order_statuses.color }}
+                            >
                               {os.service_order_statuses.name}
                             </span>
                           )}
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${OS_PRIORITY_COLORS[os.priority] ?? ""}`}>
-                            {OS_PRIORITY_LABELS[os.priority]}
-                          </span>
+                          {os.priority && (
+                            <span className={`text-xs px-1.5 py-0.5 rounded-md ${OS_PRIORITY_COLORS[os.priority] ?? ""}`}>
+                              {OS_PRIORITY_LABELS[os.priority]}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">{os.reported_problem?.slice(0, 60)}</p>
+                        {os.reported_problem && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5 max-w-xs">
+                            {os.reported_problem.slice(0, 70)}
+                          </p>
+                        )}
                       </div>
-                      <div className="text-right ml-2 shrink-0">
-                        {os.total > 0 && <p className="text-sm font-medium">{fmt(os.total)}</p>}
-                        <p className="text-xs text-muted-foreground">{fmtDate(os.created_at)}</p>
+                      <div className="text-right ml-3 shrink-0">
+                        {os.total > 0 && (
+                          <p className="text-sm font-semibold tabular-nums">{fmt(os.total)}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">{fmtDateTime(os.created_at)}</p>
                       </div>
                     </Link>
                   ))}
