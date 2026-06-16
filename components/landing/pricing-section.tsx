@@ -1,16 +1,15 @@
-import { Check, Star, Zap, MessageCircle, CalendarCheck, Building2, TrendingUp } from "lucide-react"
+import { Check, Star, Zap, CalendarCheck, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const WA_DEMO = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Tenho uma loja de scooters elétricas e quero agendar uma demonstração do ScooterGestor.")}`
-const WA_ENTERPRISE = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Quero saber mais sobre o plano Enterprise do ScooterGestor.")}`
 
 const plans = [
   {
     id: "start",
     name: "Start",
-    price: 197,
-    dailyPrice: "R$6,56",
-    setup: 497,
+    price: 97,
+    dailyPrice: "R$3,23",
+    setup: 297,
     description: "Para lojas que querem sair do papel e da planilha de vez.",
     highlight: false,
     badge: null,
@@ -31,9 +30,9 @@ const plans = [
   {
     id: "pro",
     name: "Pro",
-    price: 297,
-    dailyPrice: "R$9,90",
-    setup: 797,
+    price: 197,
+    dailyPrice: "R$6,57",
+    setup: 597,
     description: "Para lojas com venda de balcão ativa e oficina funcionando.",
     highlight: true,
     badge: "Mais recomendado",
@@ -57,9 +56,9 @@ const plans = [
   {
     id: "premium",
     name: "Premium",
-    price: 497,
-    dailyPrice: "R$16,56",
-    setup: 1497,
+    price: 297,
+    dailyPrice: "R$9,90",
+    setup: 897,
     description: "Para lojas com equipe maior e controle total da operação.",
     highlight: false,
     badge: null,
@@ -130,7 +129,7 @@ export function PricingSection() {
             <p className="text-sm text-zinc-300 leading-snug">
               Uma loja sem sistema perde em média{" "}
               <span className="text-white font-semibold">R$600–1.200/mês</span> em estoque não
-              registrado, vendas perdidas e retrabalho. O plano Start custa <span className="text-brand-green font-semibold">R$197/mês</span>.
+              registrado, vendas perdidas e retrabalho. O plano Start custa <span className="text-brand-green font-semibold">R$97/mês</span>.
             </p>
           </div>
         </div>
@@ -271,38 +270,6 @@ export function PricingSection() {
           <span>Dados exportáveis em até 30 dias após cancelamento</span>
           <span>·</span>
           <span>Suporte por WhatsApp incluso em todos os planos</span>
-        </div>
-
-        {/* Enterprise */}
-        <div className="mt-5 max-w-5xl mx-auto">
-          <div
-            className="rounded-2xl border border-white/[0.08] p-6 flex flex-col sm:flex-row items-center justify-between gap-4"
-            style={{ background: "oklch(0.10 0.032 262)" }}
-          >
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-xl bg-white/[0.06] border border-white/[0.08] shrink-0">
-                <Building2 className="size-5 text-zinc-400" />
-              </div>
-              <div>
-                <div className="font-display font-bold text-xl text-white">Enterprise</div>
-                <div className="text-sm text-zinc-400 mt-1">
-                  Redes de lojas, franquias e múltiplas unidades. Domínio próprio, customizações e suporte dedicado.
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-              <div className="font-display text-xl font-bold text-white">Sob consulta</div>
-              <a
-                href={WA_ENTERPRISE}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 h-10 px-5 rounded-xl border border-white/[0.10] bg-white/[0.06] hover:bg-white/[0.12] text-sm font-medium text-white transition-all duration-200 hover:-translate-y-px"
-              >
-                <MessageCircle className="size-4 text-brand-green" />
-                Falar no WhatsApp
-              </a>
-            </div>
-          </div>
         </div>
       </div>
     </section>

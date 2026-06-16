@@ -38,8 +38,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   start: {
     id: "start",
     name: "Start",
-    price: 197,
-    setupFee: 497,
+    price: 97,
+    setupFee: 297,
     limits: {
       maxUsers: 2,
       maxProducts: 300,
@@ -67,8 +67,8 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   pro: {
     id: "pro",
     name: "Pro",
-    price: 297,
-    setupFee: 797,
+    price: 197,
+    setupFee: 597,
     limits: {
       maxUsers: 5,
       maxProducts: 1500,
@@ -96,43 +96,14 @@ export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
   premium: {
     id: "premium",
     name: "Premium",
-    price: 497,
-    setupFee: 1497,
+    price: 297,
+    setupFee: 897,
     limits: {
       maxUsers: 10,
       maxProducts: 5000,
       maxCustomers: 10000,
       maxServiceOrdersPerMonth: 1500,
       maxUnits: 2,
-    },
-    features: {
-      customChecklist: true,
-      customStatuses: true,
-      customTheme: true,
-      whatsappTemplates: true,
-      advancedReports: true,
-      serviceOrderPhotos: true,
-      pdfExport: true,
-      suppliers: true,
-      purchases: true,
-      advancedWarranty: true,
-      advancedPermissions: true,
-      pdv: true,
-      financialModule: true,
-      multipleUnits: true,
-    },
-  },
-  enterprise: {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 0,
-    setupFee: 0,
-    limits: {
-      maxUsers: Infinity,
-      maxProducts: Infinity,
-      maxCustomers: Infinity,
-      maxServiceOrdersPerMonth: Infinity,
-      maxUnits: Infinity,
     },
     features: {
       customChecklist: true,
@@ -166,11 +137,11 @@ export function getLimit(plan: Plan, limit: keyof PlanLimits): number {
 }
 
 export function getPlanThatUnlocksFeature(feature: keyof PlanFeatures): Plan | null {
-  const order: Plan[] = ["start", "pro", "premium", "enterprise"]
+  const order: Plan[] = ["start", "pro", "premium"]
   return order.find((plan) => PLAN_CONFIGS[plan].features[feature]) ?? null
 }
 
 export function getPlanThatUnlocksLimit(limit: keyof PlanLimits, value: number): Plan | null {
-  const order: Plan[] = ["start", "pro", "premium", "enterprise"]
+  const order: Plan[] = ["start", "pro", "premium"]
   return order.find((plan) => PLAN_CONFIGS[plan].limits[limit] >= value) ?? null
 }

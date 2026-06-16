@@ -4,7 +4,7 @@ export const LANDING_URL = "https://scootergestor.com.br"
 export const WHATSAPP_NUMBER = "5521999999999"
 export const SUPPORT_EMAIL = "suporte@scootergestor.com.br"
 
-export const PLANS = ["start", "pro", "premium", "enterprise"] as const
+export const PLANS = ["start", "pro", "premium"] as const
 export type Plan = (typeof PLANS)[number]
 
 export const ROLES = ["owner", "admin", "manager", "seller", "technician", "cashier"] as const
@@ -111,7 +111,6 @@ export const PLAN_LABELS: Record<string, string> = {
   start: "Start",
   pro: "Pro",
   premium: "Premium",
-  enterprise: "Enterprise",
 }
 
 export const DEFAULT_OS_STATUSES = [
