@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { togglePaymentMethodAction, updatePaymentMethodFeesAction, type InstallmentFeeRange } from "@/lib/actions/settings"
+import { togglePaymentMethodAction, updatePaymentMethodFeesAction, type InstallmentFee } from "@/lib/actions/settings"
 import type { Tables } from "@/types/database"
 
 type Method = Tables<"payment_methods">
@@ -23,14 +23,12 @@ const TYPE_LABELS: Record<string, string> = {
   other: "Outro",
 }
 
-const DEFAULT_INSTALLMENT_RANGES: InstallmentFeeRange[] = [
-  { from: 1, to: 1, fee: 0 },
-  { from: 2, to: 6, fee: 0 },
-  { from: 7, to: 12, fee: 0 },
-  { from: 13, to: 21, fee: 0 },
-]
+const MAX_INSTALLMENTS = 21
 
-const RANGE_LABELS = ["1x (à vista)", "2x a 6x", "7x a 12x", "13x a 21x"]
+const DEFAULT_INSTALLMENT_FEES: InstallmentFee[] = Array.from(
+  { length: MAX_INSTALLMENTS },
+  (_, i) => ({ installments: i + 1, fee: 0 })
+)
 
 function isCreditCard(type: string) {
   return type === "credit_card" || type === "cartao_credito"
@@ -40,19 +38,37 @@ function hasFee(type: string) {
   return type !== "cash" && type !== "dinheiro" && type !== "pix" && type !== "payment_link" && type !== "bank_slip" && type !== "boleto"
 }
 
-function parseInstallmentFees(raw: unknown): InstallmentFeeRange[] {
-  if (!raw) return DEFAULT_INSTALLMENT_RANGES
+// Converte o formato antigo (faixas { from, to, fee }) para taxas individuais por parcela.
+function parseInstallmentFees(raw: unknown): InstallmentFee[] {
+  if (!raw) return DEFAULT_INSTALLMENT_FEES
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw
-    if (Array.isArray(parsed) && parsed.length === 4) return parsed
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_INSTALLMENT_FEES
+
+    if ("installments" in parsed[0]) {
+      const byInstallments = new Map<number, number>(parsed.map((p: InstallmentFee) => [p.installments, p.fee]))
+      return Array.from({ length: MAX_INSTALLMENTS }, (_, i) => ({
+        installments: i + 1,
+        fee: byInstallments.get(i + 1) ?? 0,
+      }))
+    }
+
+    if ("from" in parsed[0]) {
+      const ranges = parsed as { from: number; to: number; fee: number }[]
+      return Array.from({ length: MAX_INSTALLMENTS }, (_, i) => {
+        const n = i + 1
+        const range = ranges.find((r) => n >= r.from && n <= r.to)
+        return { installments: n, fee: range?.fee ?? 0 }
+      })
+    }
   } catch {}
-  return DEFAULT_INSTALLMENT_RANGES
+  return DEFAULT_INSTALLMENT_FEES
 }
 
 function MethodCard({ method }: { method: Method }) {
   const [isPending, startTransition] = useTransition()
   const [feePercent, setFeePercent] = useState(method.fee_percent ?? 0)
-  const [installmentFees, setInstallmentFees] = useState<InstallmentFeeRange[]>(
+  const [installmentFees, setInstallmentFees] = useState<InstallmentFee[]>(
     () => parseInstallmentFees(method.installment_fees)
   )
 
@@ -98,23 +114,21 @@ function MethodCard({ method }: { method: Method }) {
         </p>
 
         {isCreditCard(method.type) ? (
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {installmentFees.map((range, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <Label className="w-32 text-sm shrink-0">{RANGE_LABELS[idx]}</Label>
-                <div className="flex items-center gap-1.5">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.01"
-                    className="w-24 h-8 text-sm"
-                    value={range.fee || ""}
-                    onChange={e => updateRangeFee(idx, Math.max(0, Math.min(100, Number(e.target.value))))}
-                    placeholder="0,00"
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
-                </div>
+              <div key={idx} className="flex items-center gap-1.5">
+                <Label className="w-10 text-sm shrink-0">{range.installments}x</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  className="w-20 h-8 text-sm"
+                  value={range.fee || ""}
+                  onChange={e => updateRangeFee(idx, Math.max(0, Math.min(100, Number(e.target.value))))}
+                  placeholder="0,00"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
               </div>
             ))}
           </div>

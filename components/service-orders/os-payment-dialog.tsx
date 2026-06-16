@@ -20,7 +20,7 @@ import {
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-interface InstallmentFeeRange { from: number; to: number; fee: number }
+interface InstallmentFee { installments: number; fee: number }
 
 function isCreditCard(type: string) {
   return type === "credit_card" || type === "cartao_credito"
@@ -34,10 +34,10 @@ function getFeePercent(
 ): number {
   if (NO_FEE_TYPES.has(method.type)) return 0
   if (isCreditCard(method.type) && method.installment_fees?.length) {
-    const range = (method.installment_fees as InstallmentFeeRange[]).find(
-      (r) => installments >= r.from && installments <= r.to
+    const entry = (method.installment_fees as InstallmentFee[]).find(
+      (r) => r.installments === installments
     )
-    return range?.fee ?? 0
+    return entry?.fee ?? 0
   }
   return method.fee_percent ?? 0
 }

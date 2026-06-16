@@ -419,7 +419,7 @@ export interface OsPaymentData {
     name: string
     type: string
     fee_percent: number
-    installment_fees: { from: number; to: number; fee: number }[] | null
+    installment_fees: { installments: number; fee: number }[] | null
   }[]
 }
 

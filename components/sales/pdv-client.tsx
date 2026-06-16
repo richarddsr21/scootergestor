@@ -14,14 +14,14 @@ import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X } from "lucide-react
 import { confirmSaleAction, type CartItem, type PaymentEntry } from "@/lib/actions/sales"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
 
-interface InstallmentFeeRange { from: number; to: number; fee: number }
+interface InstallmentFee { installments: number; fee: number }
 
 interface PaymentMethod {
   id: string
   name: string
   type: string
   fee_percent: number
-  installment_fees: InstallmentFeeRange[] | null
+  installment_fees: InstallmentFee[] | null
 }
 
 interface Product {
@@ -50,8 +50,8 @@ const NO_FEE_TYPES = new Set(["cash", "dinheiro", "pix", "bank_slip", "boleto"])
 function getFeePercent(method: PaymentMethod, installments: number): number {
   if (NO_FEE_TYPES.has(method.type)) return 0
   if (isCreditCard(method.type) && method.installment_fees?.length) {
-    const range = method.installment_fees.find(r => installments >= r.from && installments <= r.to)
-    return range?.fee ?? 0
+    const entry = method.installment_fees.find(r => r.installments === installments)
+    return entry?.fee ?? 0
   }
   return method.fee_percent ?? 0
 }

@@ -437,16 +437,15 @@ export async function togglePaymentMethodAction(
   return { success: active ? "Forma ativada" : "Forma desativada" }
 }
 
-export interface InstallmentFeeRange {
-  from: number
-  to: number
+export interface InstallmentFee {
+  installments: number
   fee: number
 }
 
 export async function updatePaymentMethodFeesAction(
   id: string,
   feePercent: number,
-  installmentFees: InstallmentFeeRange[] | null
+  installmentFees: InstallmentFee[] | null
 ): Promise<ActionState> {
   const ctx = await getAdminCtx()
   if (!ctx) return { error: "Sem permissão" }
