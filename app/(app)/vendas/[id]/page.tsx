@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft } from "lucide-react"
 import { CancelSaleButton } from "@/components/sales/cancel-sale-button"
+import { WhatsAppReceiptButton } from "@/components/sales/whatsapp-receipt-button"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
 
 function fmt(n: number) {
@@ -33,7 +34,7 @@ export default async function VendaDetailPage({
   const cid = profile.company_id
   const supabase = await createClient()
 
-  const [{ data: sale }, { data: items }, { data: payments }] = await Promise.all([
+  const [{ data: sale }, { data: items }, { data: payments }, { data: settings }] = await Promise.all([
     supabase.from("sales")
       .select("*, customers(name, phone, whatsapp)")
       .eq("id", id).eq("company_id", cid).single(),
@@ -45,6 +46,9 @@ export default async function VendaDetailPage({
       .select("method, amount, fee_amount, installments")
       .eq("sale_id", id).eq("company_id", cid)
       .order("created_at"),
+    supabase.from("company_settings")
+      .select("business_name, cnpj, phone, whatsapp")
+      .eq("company_id", cid).maybeSingle(),
   ])
 
   if (!sale) notFound()
@@ -65,6 +69,34 @@ export default async function VendaDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={STATUS_VARIANTS[sale.status] ?? "secondary"}>{STATUS_LABELS[sale.status] ?? sale.status}</Badge>
+          {sale.status !== "cancelada" && (
+            <WhatsAppReceiptButton
+              saleNumber={sale.sale_number}
+              createdAt={sale.created_at}
+              items={(items ?? []).map((item: any) => ({
+                name: item.products?.name ?? "Item",
+                sku: item.products?.sku ?? null,
+                quantity: item.quantity,
+                unitPrice: item.unit_price,
+                discount: item.discount,
+                total: item.total,
+              }))}
+              subtotal={sale.subtotal}
+              discount={sale.discount}
+              total={sale.total}
+              payments={(payments ?? []).map((p: any) => ({
+                method: p.method,
+                amount: p.amount,
+                feeAmount: p.fee_amount ?? 0,
+                installments: p.installments,
+              }))}
+              customerName={(sale as any).customers?.name ?? "Cliente"}
+              customerWhatsapp={(sale as any).customers?.whatsapp ?? (sale as any).customers?.phone ?? null}
+              storeName={settings?.business_name ?? "ScooterGestor"}
+              storeCnpj={settings?.cnpj ?? null}
+              storePhone={settings?.whatsapp ?? settings?.phone ?? null}
+            />
+          )}
           {sale.status !== "cancelada" && <CancelSaleButton id={id} />}
         </div>
       </div>
