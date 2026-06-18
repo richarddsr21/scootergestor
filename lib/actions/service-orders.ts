@@ -414,6 +414,16 @@ export interface OsPaymentEntry {
 export interface OsPaymentData {
   total: number
   payment_status: string
+  orderNumber: string
+  createdAt: string
+  customerName: string
+  customerWhatsapp: string | null
+  items: { name: string; quantity: number; unitPrice: number; total: number }[]
+  subtotal: number
+  discount: number
+  storeName: string
+  storeCnpj: string | null
+  storePhone: string | null
   paymentMethods: {
     id: string
     name: string
@@ -427,10 +437,14 @@ export async function getOsPaymentDataAction(osId: string): Promise<OsPaymentDat
   const ctx = await getCtx()
   if (!ctx) return null
 
-  const [{ data: os }, { data: pms }] = await Promise.all([
+  const [{ data: os }, { data: pms }, { data: settings }] = await Promise.all([
     ctx.supabase
       .from("service_orders")
-      .select("total, payment_status")
+      .select(`
+        total, payment_status, order_number, created_at, discount, labor_total, parts_total,
+        customers(name, whatsapp, phone),
+        service_order_items(description, quantity, unit_price, total)
+      `)
       .eq("id", osId)
       .eq("company_id", ctx.profile.company_id)
       .single(),
@@ -440,13 +454,36 @@ export async function getOsPaymentDataAction(osId: string): Promise<OsPaymentDat
       .eq("company_id", ctx.profile.company_id)
       .eq("active", true)
       .order("name"),
+    ctx.supabase
+      .from("company_settings")
+      .select("business_name, cnpj, whatsapp, phone")
+      .eq("company_id", ctx.profile.company_id)
+      .maybeSingle(),
   ])
 
   if (!os) return null
 
+  const customer = (os as any).customers
+  const osItems = (os as any).service_order_items ?? []
+
   return {
     total: os.total,
     payment_status: os.payment_status,
+    orderNumber: (os as any).order_number,
+    createdAt: (os as any).created_at,
+    customerName: customer?.name ?? "Cliente",
+    customerWhatsapp: customer?.whatsapp ?? customer?.phone ?? null,
+    items: osItems.map((item: any) => ({
+      name: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      total: item.total,
+    })),
+    subtotal: ((os as any).labor_total ?? 0) + ((os as any).parts_total ?? 0),
+    discount: (os as any).discount ?? 0,
+    storeName: (settings as any)?.business_name ?? "",
+    storeCnpj: (settings as any)?.cnpj ?? null,
+    storePhone: (settings as any)?.whatsapp ?? (settings as any)?.phone ?? null,
     paymentMethods: (pms ?? []) as OsPaymentData["paymentMethods"],
   }
 }
@@ -527,8 +564,5 @@ export async function payServiceOrderAction(
     .eq("id", osId)
     .eq("company_id", ctx.profile.company_id)
 
-  revalidatePath(`/oficina/${osId}`)
-  revalidatePath("/oficina")
-  revalidatePath("/oficina/orcamentos")
   return { success: payment_status === "pago" ? "Pagamento registrado" : "Pagamento parcial registrado" }
 }

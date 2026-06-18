@@ -30,6 +30,7 @@ const productSchema = z.object({
   minimum_stock: z.coerce.number().int().nonnegative().default(0),
   unit: z.string().min(1, "Unidade é obrigatória").default("un"),
   product_type: z.string().min(1, "Tipo é obrigatório").default("other"),
+  requires_chassis: z.coerce.boolean().default(false),
   status: z.enum(["active", "inactive"]).default("active"),
 })
 

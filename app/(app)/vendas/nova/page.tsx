@@ -16,7 +16,7 @@ export default async function NovaVendaPage() {
 
   const [{ data: products }, { data: customers }, { data: paymentMethods }] = await Promise.all([
     supabase.from("products")
-      .select("id, name, sku, sale_price, cost_price, stock_quantity, unit")
+      .select("id, name, sku, sale_price, cost_price, stock_quantity, unit, product_type, requires_chassis")
       .eq("company_id", cid).eq("status", "active")
       .gt("stock_quantity", 0)
       .order("name"),

@@ -172,6 +172,7 @@ export interface Database {
           unit: string
           image_url: string | null
           product_type: string
+          requires_chassis: boolean
           status: string
           created_at: string
           updated_at: string
@@ -266,6 +267,7 @@ export interface Database {
           cost_price: number
           discount: number
           total: number
+          chassis_number: string | null
           created_at: string
         }
         Insert: Omit<Database["public"]["Tables"]["sale_items"]["Row"], "id" | "created_at">
@@ -587,6 +589,61 @@ export interface Database {
         }
         Update: never
 
+        Relationships: never[]
+      }
+      revision_schedules: {
+        Row: {
+          id: string
+          company_id: string
+          customer_id: string
+          source_os_id: string | null
+          source_sale_id: string | null
+          started_at: string
+          is_active: boolean
+          cancelled_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          customer_id: string
+          source_os_id?: string | null
+          source_sale_id?: string | null
+          started_at?: string
+          is_active?: boolean
+          cancelled_at?: string | null
+        }
+        Update: Partial<{
+          is_active: boolean
+          cancelled_at: string | null
+          updated_at: string
+        }>
+        Relationships: never[]
+      }
+      revision_reminders: {
+        Row: {
+          id: string
+          schedule_id: string
+          company_id: string
+          remind_on: string
+          notify_customer: boolean
+          notify_store: boolean
+          sent_at: string | null
+          created_at: string
+        }
+        Insert: {
+          schedule_id: string
+          company_id: string
+          remind_on: string
+          notify_customer?: boolean
+          notify_store?: boolean
+          sent_at?: string | null
+        }
+        Update: Partial<{
+          notify_customer: boolean
+          notify_store: boolean
+          sent_at: string | null
+        }>
         Relationships: never[]
       }
       services: {

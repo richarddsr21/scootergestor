@@ -17,6 +17,7 @@ import {
   type OsPaymentData,
   type OsPaymentEntry,
 } from "@/lib/actions/service-orders"
+import { type ReceiptProps } from "@/lib/receipt-builder"
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,10 +44,10 @@ function getFeePercent(
 }
 
 const FALLBACK_METHODS: OsPaymentData["paymentMethods"] = [
-  { id: "dinheiro",  name: "Dinheiro",        type: "dinheiro",       fee_percent: 0, installment_fees: null },
-  { id: "pix",       name: "PIX",              type: "pix",            fee_percent: 0, installment_fees: null },
-  { id: "debito",    name: "Cartão de Débito", type: "debit_card",     fee_percent: 0, installment_fees: null },
-  { id: "credito",   name: "Cartão de Crédito",type: "credit_card",    fee_percent: 0, installment_fees: null },
+  { id: "dinheiro",  name: "Dinheiro",         type: "dinheiro",    fee_percent: 0, installment_fees: null },
+  { id: "pix",       name: "PIX",               type: "pix",         fee_percent: 0, installment_fees: null },
+  { id: "debito",    name: "Cartão de Débito",  type: "debit_card",  fee_percent: 0, installment_fees: null },
+  { id: "credito",   name: "Cartão de Crédito", type: "credit_card", fee_percent: 0, installment_fees: null },
 ]
 
 const INSTALLMENTS = Array.from({ length: 12 }, (_, i) => i + 1)
@@ -54,8 +55,6 @@ const INSTALLMENTS = Array.from({ length: 12 }, (_, i) => i + 1)
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
 }
-
-// ─── types ────────────────────────────────────────────────────────────────────
 
 type UIEntry = { id: number; methodId: string; amount: string; installments: number }
 
@@ -65,7 +64,7 @@ interface Props {
   osId: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess?: () => void
+  onSuccess?: (receipt: ReceiptProps) => void
 }
 
 export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) {
@@ -76,7 +75,6 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
   const entryIdRef = React.useRef(0)
   const [entries, setEntries] = React.useState<UIEntry[]>([])
 
-  // Fetch OS data when dialog opens
   React.useEffect(() => {
     if (!open) return
     setLoadingData(true)
@@ -138,13 +136,39 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
         return
       }
       toast.success(result.success ?? "Pagamento registrado")
-      onOpenChange(false)
-      onSuccess?.()
-    })
-  }
 
-  function handleSkip() {
-    onOpenChange(false)
+      if (osData) {
+        const receipt: ReceiptProps = {
+          saleNumber: osData.orderNumber,
+          createdAt: new Date().toISOString(),
+          items: osData.items.map((item) => ({
+            name: item.name,
+            sku: null,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: 0,
+            total: item.total,
+          })),
+          subtotal: osData.subtotal,
+          discount: osData.discount,
+          total: osData.total,
+          payments: payload.map((e) => ({
+            method: e.method,
+            amount: e.amount - e.fee_amount,
+            feeAmount: e.fee_amount,
+            installments: e.installments,
+          })),
+          customerName: osData.customerName,
+          customerWhatsapp: osData.customerWhatsapp,
+          storeName: osData.storeName,
+          storeCnpj: osData.storeCnpj,
+          storePhone: osData.storePhone,
+        }
+        onSuccess?.(receipt)
+      }
+
+      onOpenChange(false)
+    })
   }
 
   const alreadyPaid = osData?.payment_status === "pago"
@@ -173,13 +197,11 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
 
         {!loadingData && !alreadyPaid && osData && (
           <div className="space-y-4">
-            {/* Total */}
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
               <span className="text-sm text-muted-foreground">Total da OS</span>
               <span className="text-lg font-bold text-emerald-600">{fmt(total)}</span>
             </div>
 
-            {/* Entries */}
             <div className="space-y-3">
               {entries.map((entry, idx) => {
                 const method = methods.find((m) => m.id === entry.methodId) ?? methods[0]
@@ -277,7 +299,6 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
 
             <Separator />
 
-            {/* Summary */}
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total pago</span>
@@ -294,7 +315,7 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
         )}
 
         <DialogFooter className="gap-2">
-          <Button variant="ghost" size="sm" onClick={handleSkip} disabled={isPending}>
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={isPending}>
             Pagar depois
           </Button>
           {!alreadyPaid && !loadingData && (

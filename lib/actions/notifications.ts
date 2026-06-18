@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 
 export type NotificationItem = {
   id: string
-  type: "low_stock" | "overdue_os" | "quote_approved" | "quote_rejected" | "warranty_expiring"
+  type: "low_stock" | "overdue_os" | "quote_approved" | "quote_rejected" | "warranty_expiring" | "revision_due"
   title: string
   description: string
   href: string
@@ -42,6 +42,7 @@ export async function getNotificationsAction(): Promise<NotificationsData> {
     { data: approvedQuotes },
     { data: rejectedQuotes },
     { data: expiringWarranties },
+    { data: dueReminders },
   ] = await Promise.all([
     supabase
       .from("products")
@@ -81,6 +82,15 @@ export async function getNotificationsAction(): Promise<NotificationsData> {
       .gte("end_date", today)
       .lte("end_date", sevenDaysAhead)
       .order("end_date", { ascending: true })
+      .limit(5),
+    supabase
+      .from("revision_reminders")
+      .select("id, remind_on, revision_schedules!inner(customer_id, is_active, customers(id, name))")
+      .eq("company_id", cid)
+      .eq("notify_store", true)
+      .is("sent_at", null)
+      .lte("remind_on", today)
+      .order("remind_on", { ascending: true })
       .limit(5),
   ])
 
@@ -149,6 +159,22 @@ export async function getNotificationsAction(): Promise<NotificationsData> {
       description: `${customer?.name ?? "—"}${product?.name ? ` · ${product.name}` : ""}`,
       href: "/garantias",
       date: w.end_date,
+    })
+  }
+
+  // Due revision reminders
+  for (const r of dueReminders ?? []) {
+    const schedule = Array.isArray((r as any).revision_schedules) ? (r as any).revision_schedules[0] : (r as any).revision_schedules
+    if (!schedule?.is_active) continue
+    const customer = Array.isArray(schedule.customers) ? schedule.customers[0] : schedule.customers
+    const customerId = customer?.id ?? schedule.customer_id
+    items.push({
+      id: `rev-${r.id}`,
+      type: "revision_due",
+      title: "Revisão pendente",
+      description: `${customer?.name ?? "—"} — lembrete de revisão`,
+      href: customerId ? `/clientes/${customerId}` : "/clientes",
+      date: (r as any).remind_on,
     })
   }
 

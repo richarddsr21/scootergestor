@@ -22,6 +22,8 @@ export interface CartItem {
   unitPrice: number
   costPrice: number
   discount: number
+  requiresChassis?: boolean
+  chassisNumber?: string
 }
 
 export interface PaymentEntry {
@@ -74,7 +76,7 @@ export async function confirmSaleAction(
 
   if (saleErr || !sale) return { error: "Erro ao criar venda" }
 
-  // Create sale items + update stock (each item processed in parallel)
+  // Create sale items + update stock + auto-create vehicles (all in parallel)
   await Promise.all(items.map(async (item) => {
     const itemTotal = item.unitPrice * item.quantity - item.discount
 
@@ -87,7 +89,38 @@ export async function confirmSaleAction(
       cost_price: item.costPrice,
       discount: item.discount,
       total: itemTotal,
+      chassis_number: item.chassisNumber?.trim() || null,
     })
+
+    // Se for scooter com cliente, cria o veículo automaticamente
+    if (item.requiresChassis && customerId) {
+      const { data: product } = await ctx.supabase
+        .from("products")
+        .select("brand, model, product_type")
+        .eq("id", item.productId)
+        .eq("company_id", ctx.profile.company_id)
+        .single()
+
+      if (product?.product_type === "scooter") {
+        await ctx.supabase.from("vehicles").insert({
+          company_id: ctx.profile.company_id,
+          customer_id: customerId,
+          product_id: item.productId,
+          type: "Scooter Elétrica",
+          brand: product.brand ?? null,
+          model: product.model ?? item.productName,
+          serial_number: item.chassisNumber?.trim() || null,
+          purchase_date: new Date().toISOString().split("T")[0],
+          color: null,
+          battery_type: null,
+          voltage: null,
+          power: null,
+          autonomy: null,
+          warranty_until: null,
+          notes: null,
+        })
+      }
+    }
 
     const { data: product } = await ctx.supabase
       .from("products")

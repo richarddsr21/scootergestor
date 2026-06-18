@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft } from "lucide-react"
 import { CancelSaleButton } from "@/components/sales/cancel-sale-button"
-import { WhatsAppReceiptButton } from "@/components/sales/whatsapp-receipt-button"
+import { SaleReceiptButtons } from "@/components/sales/whatsapp-receipt-button"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
+import { RevisionSection } from "@/components/revisions/revision-section"
+import { getCustomerRevisionAction } from "@/lib/actions/revisions"
 
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
@@ -36,10 +38,10 @@ export default async function VendaDetailPage({
 
   const [{ data: sale }, { data: items }, { data: payments }, { data: settings }] = await Promise.all([
     supabase.from("sales")
-      .select("*, customers(name, phone, whatsapp)")
+      .select("*, customers(id, name, phone, whatsapp)")
       .eq("id", id).eq("company_id", cid).single(),
     supabase.from("sale_items")
-      .select("id, quantity, unit_price, discount, total, products(name, sku)")
+      .select("id, quantity, unit_price, discount, total, chassis_number, products(name, sku)")
       .eq("sale_id", id).eq("company_id", cid)
       .order("created_at"),
     supabase.from("payments")
@@ -52,6 +54,9 @@ export default async function VendaDetailPage({
   ])
 
   if (!sale) notFound()
+
+  const customerId = (sale as any).customers?.id ?? null
+  const revision = customerId ? await getCustomerRevisionAction(customerId) : null
 
   const STATUS_LABELS: Record<string, string> = { concluida: "Concluída", cancelada: "Cancelada", pendente: "Pendente" }
   const STATUS_VARIANTS: Record<string, "default" | "destructive" | "secondary"> = {
@@ -70,7 +75,7 @@ export default async function VendaDetailPage({
         <div className="flex items-center gap-2">
           <Badge variant={STATUS_VARIANTS[sale.status] ?? "secondary"}>{STATUS_LABELS[sale.status] ?? sale.status}</Badge>
           {sale.status !== "cancelada" && (
-            <WhatsAppReceiptButton
+            <SaleReceiptButtons
               saleNumber={sale.sale_number}
               createdAt={sale.created_at}
               items={(items ?? []).map((item: any) => ({
@@ -92,10 +97,11 @@ export default async function VendaDetailPage({
               }))}
               customerName={(sale as any).customers?.name ?? "Cliente"}
               customerWhatsapp={(sale as any).customers?.whatsapp ?? (sale as any).customers?.phone ?? null}
-              storeName={settings?.business_name ?? "ScooterGestor"}
+              storeName={settings?.business_name ?? ""}
               storeCnpj={settings?.cnpj ?? null}
               storePhone={settings?.whatsapp ?? settings?.phone ?? null}
             />
+
           )}
           {sale.status !== "cancelada" && <CancelSaleButton id={id} />}
         </div>
@@ -122,6 +128,7 @@ export default async function VendaDetailPage({
                       <td className="p-3">
                         <p className="font-medium">{item.products?.name ?? "—"}</p>
                         {item.products?.sku && <p className="text-xs text-muted-foreground">{item.products.sku}</p>}
+                        {item.chassis_number && <p className="text-xs text-muted-foreground">Chassi: {item.chassis_number}</p>}
                       </td>
                       <td className="p-3 text-right">{item.quantity}</td>
                       <td className="p-3 text-right">{fmt(item.unit_price)}</td>
@@ -203,6 +210,14 @@ export default async function VendaDetailPage({
               <CardHeader><CardTitle className="text-sm">Observações</CardTitle></CardHeader>
               <CardContent><p className="text-sm text-muted-foreground">{sale.notes}</p></CardContent>
             </Card>
+          )}
+
+          {customerId && (
+            <RevisionSection
+              customerId={customerId}
+              initialRevision={revision}
+              sourceSaleId={id}
+            />
           )}
         </div>
       </div>

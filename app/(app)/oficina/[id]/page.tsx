@@ -15,6 +15,8 @@ import { OsNotesSection } from "@/components/service-orders/os-notes-section"
 import { OsPayButton } from "@/components/service-orders/os-pay-button"
 import { OsVehicleSection } from "@/components/service-orders/os-vehicle-section"
 import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS } from "@/lib/constants"
+import { RevisionSection } from "@/components/revisions/revision-section"
+import { getCustomerRevisionAction } from "@/lib/actions/revisions"
 
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
@@ -84,6 +86,7 @@ export default async function OsDetailPage({
   if (!os) notFound()
 
   const customer = (os as any).customers
+  const revision = customer?.id ? await getCustomerRevisionAction(customer.id) : null
   const status = (os as any).service_order_statuses
   const vehicle = (os as any).vehicles
   const technician = (os as any).profiles
@@ -215,13 +218,19 @@ export default async function OsDetailPage({
                 <span>Total</span>
                 <span className="text-emerald-600">{fmt(os.total ?? 0)}</span>
               </div>
-              {os.payment_status !== "pago" && (
-                <div className="pt-2">
-                  <OsPayButton osId={id} />
-                </div>
-              )}
+              <div className="pt-2">
+                <OsPayButton osId={id} alreadyPaid={os.payment_status === "pago"} />
+              </div>
             </CardContent>
           </Card>
+
+          {customer?.id && (
+            <RevisionSection
+              customerId={customer.id}
+              initialRevision={revision}
+              sourceOsId={id}
+            />
+          )}
         </div>
 
         <div className="lg:col-span-2 space-y-4">

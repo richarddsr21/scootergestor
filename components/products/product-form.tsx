@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { saveProductAction } from "@/lib/actions/products"
 import { PRODUCT_TYPE_LABELS } from "@/lib/constants"
 import type { Tables } from "@/types/database"
@@ -119,6 +120,18 @@ export function ProductForm({ product, categories }: Props) {
           <Label htmlFor="description">Descrição</Label>
           <Textarea id="description" name="description" defaultValue={product?.description ?? ""} rows={3}
             placeholder="Descrição do produto..." />
+        </div>
+
+        <div className="sm:col-span-2 flex items-center gap-2">
+          <Checkbox
+            id="requires_chassis"
+            name="requires_chassis"
+            value="true"
+            defaultChecked={product?.requires_chassis ?? false}
+          />
+          <Label htmlFor="requires_chassis" className="cursor-pointer font-normal">
+            Exigir número de chassi na venda (ex: scooters)
+          </Label>
         </div>
 
         {product && (

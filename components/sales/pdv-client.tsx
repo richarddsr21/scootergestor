@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X } from "lucide-react"
+import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X, Hash } from "lucide-react"
 import { confirmSaleAction, type CartItem, type PaymentEntry } from "@/lib/actions/sales"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
 
@@ -32,6 +32,8 @@ interface Product {
   cost_price: number
   stock_quantity: number
   unit: string
+  product_type: string
+  requires_chassis: boolean
 }
 interface Customer { id: string; name: string; phone: string | null }
 
@@ -79,6 +81,8 @@ export function PdvClient({
   const [notes, setNotes] = useState("")
 
   // Discount
+  const [chassisNumbers, setChassisNumbers] = useState<Record<string, string>>({})
+
   const [discountType, setDiscountType] = useState<"value" | "percent">("value")
   const [discountInput, setDiscountInput] = useState(0)
 
@@ -110,6 +114,7 @@ export function PdvClient({
         unitPrice: product.sale_price,
         costPrice: product.cost_price,
         discount: 0,
+        requiresChassis: product.product_type === "scooter" || product.requires_chassis,
       }])
     }
   }
@@ -186,6 +191,12 @@ export function PdvClient({
       toast.error(`Distribua o valor completo. Faltam ${fmt(remaining)}`); return
     }
 
+    const missingChassis = cart.filter(i => i.requiresChassis && !chassisNumbers[i.productId]?.trim())
+    if (missingChassis.length > 0) {
+      toast.error(`Informe o chassi: ${missingChassis.map(i => i.productName).join(", ")}`)
+      return
+    }
+
     const paymentData: PaymentEntry[] = entries.map(e => ({
       method: e.methodType,
       amount: entryBaseAmount(e),
@@ -193,8 +204,13 @@ export function PdvClient({
       installments: e.installments,
     }))
 
+    const cartWithChassis = cart.map(i => ({
+      ...i,
+      chassisNumber: i.requiresChassis ? chassisNumbers[i.productId] : undefined,
+    }))
+
     startTransition(async () => {
-      const result = await confirmSaleAction(cart, customerId === "none" ? null : customerId, discountAmount, paymentData, notes)
+      const result = await confirmSaleAction(cartWithChassis, customerId === "none" ? null : customerId, discountAmount, paymentData, notes)
       if (result.error) { toast.error(result.error); return }
       toast.success(result.success ?? "Venda registrada!")
       if (result.saleId) router.push(`/vendas/${result.saleId}`)
@@ -255,7 +271,8 @@ export function PdvClient({
             ) : (
               <div className="space-y-2">
                 {cart.map(item => (
-                  <div key={item.productId} className="flex items-center gap-3 p-3 rounded-lg border">
+                  <div key={item.productId} className="p-3 rounded-lg border space-y-2">
+                    <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.productName}</p>
                       <p className="text-xs text-muted-foreground">{fmt(item.unitPrice)} un.</p>
@@ -294,6 +311,24 @@ export function PdvClient({
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
+                    </div>
+                    {item.requiresChassis && (
+                      <div className="flex items-center gap-2 rounded-md bg-muted/40 border border-dashed px-3 py-1.5">
+                        <Hash className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <span className="text-[11px] text-muted-foreground shrink-0 select-none">Chassi</span>
+                        <input
+                          className="flex-1 bg-transparent text-xs font-mono outline-none placeholder:text-muted-foreground/50 min-w-0"
+                          placeholder="ex: 9C2JC4110SR000001"
+                          value={chassisNumbers[item.productId] ?? ""}
+                          onChange={e => setChassisNumbers(prev => ({ ...prev, [item.productId]: e.target.value.toUpperCase() }))}
+                          spellCheck={false}
+                          autoComplete="off"
+                        />
+                        {chassisNumbers[item.productId] && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

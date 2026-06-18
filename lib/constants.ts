@@ -77,6 +77,8 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pix: "Pix",
   cartao_debito: "Cartão de Débito",
   cartao_credito: "Cartão de Crédito",
+  debit_card: "Cartão de Débito",
+  credit_card: "Cartão de Crédito",
   boleto: "Boleto",
   misto: "Pagamento Misto",
   outro: "Outro",

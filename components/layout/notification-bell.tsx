@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Bell, Package, Wrench, FileText, ShieldAlert, Loader2 } from "lucide-react"
+import { Bell, Package, Wrench, FileText, ShieldAlert, Loader2, CalendarClock } from "lucide-react"
 import { formatDistanceToNow, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
@@ -41,11 +41,12 @@ function writeDismissed(ids: Set<string>) {
 // ─── config ──────────────────────────────────────────────────────────────────
 
 const typeConfig = {
-  low_stock:         { icon: Package,     color: "text-amber-500",  bg: "bg-amber-500/10"  },
-  overdue_os:        { icon: Wrench,      color: "text-red-500",    bg: "bg-red-500/10"    },
-  quote_approved:    { icon: FileText,    color: "text-green-500",  bg: "bg-green-500/10"  },
-  quote_rejected:    { icon: FileText,    color: "text-red-400",    bg: "bg-red-400/10"    },
-  warranty_expiring: { icon: ShieldAlert, color: "text-orange-500", bg: "bg-orange-500/10" },
+  low_stock:         { icon: Package,      color: "text-amber-500",  bg: "bg-amber-500/10"  },
+  overdue_os:        { icon: Wrench,       color: "text-red-500",    bg: "bg-red-500/10"    },
+  quote_approved:    { icon: FileText,     color: "text-green-500",  bg: "bg-green-500/10"  },
+  quote_rejected:    { icon: FileText,     color: "text-red-400",    bg: "bg-red-400/10"    },
+  warranty_expiring: { icon: ShieldAlert,  color: "text-orange-500", bg: "bg-orange-500/10" },
+  revision_due:      { icon: CalendarClock, color: "text-blue-500",  bg: "bg-blue-500/10"   },
 }
 
 function relativeDate(date: string | null) {

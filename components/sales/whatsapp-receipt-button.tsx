@@ -1,129 +1,101 @@
 "use client"
 
-import { MessageCircle } from "lucide-react"
+import { useState } from "react"
+import { MessageCircle, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  type ReceiptProps,
+  buildThermalReceipt,
+  buildPrintHTML,
+  buildWhatsAppMessage,
+  cleanPhone,
+} from "@/lib/receipt-builder"
 
-interface ReceiptItem {
-  name: string
-  sku: string | null
-  quantity: number
-  unitPrice: number
-  discount: number
-  total: number
-}
+// Re-export for consumers that import individual interfaces from here
+export type { ReceiptProps }
 
-interface ReceiptPayment {
-  method: string
-  amount: number
-  feeAmount: number
-  installments: number | null
-}
+// Alias matching old props shape used by the sales page
+interface Props extends ReceiptProps {}
 
-interface Props {
-  saleNumber: string
-  createdAt: string
-  items: ReceiptItem[]
-  subtotal: number
-  discount: number
-  total: number
-  payments: ReceiptPayment[]
-  customerName: string
-  customerWhatsapp: string | null
-  storeName: string
-  storeCnpj: string | null
-  storePhone: string | null
-}
+export function SaleReceiptButtons(props: Props) {
+  const [open, setOpen] = useState(false)
+  const receipt = buildThermalReceipt(props)
 
-function fmt(n: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
-}
+  function handlePrint() {
+    const html = buildPrintHTML(receipt)
+    const win = window.open("", "_blank", "width=480,height=700")
+    if (!win) return
+    win.document.write(html)
+    win.document.close()
+  }
 
-function cleanPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "")
-  if (digits.startsWith("55") && digits.length >= 12) return digits
-  return `55${digits}`
-}
-
-function buildMessage(p: Props): string {
-  const date = new Date(p.createdAt)
-  const dateLabel = date.toLocaleDateString("pt-BR")
-  const timeLabel = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-
-  const itemLines = p.items
-    .map((item) => {
-      const qty = item.quantity.toString().padStart(2, " ")
-      const nameLine = item.sku ? `${item.name} (${item.sku})` : item.name
-      const calc = `${qty}x ${fmt(item.unitPrice)} = ${fmt(item.total)}`
-      return item.discount > 0
-        ? `${nameLine}\n   ${calc}  (desc. -${fmt(item.discount)})`
-        : `${nameLine}\n   ${calc}`
-    })
-    .join("\n")
-
-  const hasFees = p.payments.some((pay) => pay.feeAmount > 0)
-  const paymentLines = p.payments
-    .map((pay) => {
-      const label = PAYMENT_METHOD_LABELS[pay.method] ?? pay.method
-      const installments = pay.installments && pay.installments > 1 ? ` (${pay.installments}x)` : ""
-      const clientPaid = pay.amount + pay.feeAmount
-      return pay.feeAmount > 0
-        ? `${label}${installments}: ${fmt(clientPaid)} (taxa maquininha: ${fmt(pay.feeAmount)})`
-        : `${label}${installments}: ${fmt(clientPaid)}`
-    })
-    .join("\n")
-  const totalPaidByClient = p.payments.reduce((sum, pay) => sum + pay.amount + pay.feeAmount, 0)
-
-  const lines = [
-    "🧾 *CUPOM NÃO FISCAL*",
-    `*${p.storeName}*`,
-    p.storeCnpj ? `CNPJ: ${p.storeCnpj}` : null,
-    p.storePhone ? `📞 ${p.storePhone}` : null,
-    "```",
-    "————————————————————",
-    `Data: ${dateLabel} às ${timeLabel}`,
-    `Venda: ${p.saleNumber}`,
-    "————————————————————",
-    itemLines,
-    "————————————————————",
-    `Subtotal: ${fmt(p.subtotal)}`,
-    p.discount > 0 ? `Desconto: -${fmt(p.discount)}` : null,
-    `TOTAL: ${fmt(p.total)}`,
-    "————————————————————",
-    paymentLines ? `Pagamento:\n${paymentLines}` : null,
-    hasFees ? `Total pago: ${fmt(totalPaidByClient)}` : null,
-    "```",
-    `Obrigado pela compra, ${p.customerName}! 🙏`,
-    "",
-    "_Este documento não possui valor fiscal e serve apenas como recibo de compra._",
-    "",
-    `— ${p.storeName}`,
-  ]
-
-  return lines.filter((l) => l !== null).join("\n")
-}
-
-export function WhatsAppReceiptButton(props: Props) {
-  const phone = props.customerWhatsapp
-
-  function handleSend() {
-    if (!phone) return
-    const message = buildMessage(props)
-    const url = `https://wa.me/${cleanPhone(phone)}?text=${encodeURIComponent(message)}`
+  function handleWhatsApp() {
+    if (!props.customerWhatsapp) return
+    const message = buildWhatsAppMessage(props)
+    const url = `https://wa.me/${cleanPhone(props.customerWhatsapp)}?text=${encodeURIComponent(message)}`
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-      disabled={!phone}
-      title={phone ? "Enviar cupom não fiscal por WhatsApp" : "Cliente sem WhatsApp cadastrado"}
-      onClick={handleSend}
-    >
-      <MessageCircle className="h-4 w-4" />
-      Enviar cupom
-    </Button>
+    <>
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
+        <Printer className="h-4 w-4" />
+        Imprimir cupom
+      </Button>
+
+      <Button
+        size="sm"
+        variant="outline"
+        className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+        disabled={!props.customerWhatsapp}
+        title={
+          props.customerWhatsapp
+            ? "Enviar cupom por WhatsApp"
+            : "Cliente sem WhatsApp cadastrado"
+        }
+        onClick={handleWhatsApp}
+      >
+        <MessageCircle className="h-4 w-4" />
+        Enviar por WhatsApp
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cupom Não Fiscal</DialogTitle>
+            <DialogDescription>Clique em imprimir ou fechar.</DialogDescription>
+          </DialogHeader>
+
+          <div className="overflow-auto max-h-[60vh] rounded border bg-white p-4">
+            <pre className="font-mono text-[11px] leading-tight whitespace-pre select-all text-black">
+              {receipt}
+            </pre>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Fechar
+            </Button>
+            <Button
+              onClick={handlePrint}
+              className="gap-1.5 bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
+
+export { SaleReceiptButtons as WhatsAppReceiptButton }
