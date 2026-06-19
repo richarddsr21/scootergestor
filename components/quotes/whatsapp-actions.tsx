@@ -8,13 +8,14 @@ import { useRouter } from "next/navigation"
 interface Props {
   customerName: string
   customerWhatsapp: string | null
-  orderNumber: string
   quoteNumber: string
   total: number
-  trackingToken: string
   storeName: string
-  osId: string
   appUrl: string
+  // OS-linked fields (optional — only for quotes created from an OS)
+  orderNumber?: string
+  trackingToken?: string
+  osId?: string
   autoOpen?: boolean
 }
 
@@ -27,29 +28,29 @@ function cleanPhone(raw: string): string {
 export function WhatsAppActions({
   customerName,
   customerWhatsapp,
-  orderNumber,
   quoteNumber,
   total,
-  trackingToken,
   storeName,
-  osId,
   appUrl,
+  orderNumber,
+  trackingToken,
+  osId,
   autoOpen = false,
 }: Props) {
   const router = useRouter()
   const triggered = useRef(false)
 
-  const trackingUrl = `${appUrl}/acompanhar/${trackingToken}`
   const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)
+
+  const trackingUrl = trackingToken ? `${appUrl}/acompanhar/${trackingToken}` : null
 
   const message =
     `Olá, ${customerName}! 👋\n\n` +
     `Seu orçamento está pronto!\n\n` +
-    `📋 OS: ${orderNumber}\n` +
-    `💰 Total: ${valor}\n\n` +
-    `Acesse o link abaixo para acompanhar sua OS em tempo real:\n` +
-    `${trackingUrl}\n\n` +
-    `— ${storeName}`
+    (orderNumber ? `📋 OS: ${orderNumber}\n` : "") +
+    `💰 Total: ${valor}\n` +
+    (trackingUrl ? `\nAcompanhe em tempo real:\n${trackingUrl}\n` : "") +
+    `\n— ${storeName}`
 
   useEffect(() => {
     if (!autoOpen || !customerWhatsapp || triggered.current) return
@@ -68,6 +69,11 @@ export function WhatsAppActions({
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
+  function handleDismiss() {
+    if (osId) router.push(`/oficina/${osId}`)
+    else router.back()
+  }
+
   return (
     <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 p-5">
       <div className="flex items-start gap-3">
@@ -78,7 +84,7 @@ export function WhatsAppActions({
           <h3 className="font-semibold text-emerald-900">Enviar orçamento para o cliente?</h3>
           <p className="mt-0.5 text-sm text-emerald-700">
             {customerWhatsapp
-              ? `O orçamento ${quoteNumber} será enviado via WhatsApp para ${customerName} com o link de acompanhamento.`
+              ? `O orçamento ${quoteNumber} será enviado via WhatsApp para ${customerName}.`
               : "O cliente não tem WhatsApp cadastrado. Cadastre na ficha do cliente para enviar."}
           </p>
 
@@ -102,16 +108,18 @@ export function WhatsAppActions({
               size="sm"
               variant="ghost"
               className="text-emerald-700 hover:text-emerald-900 gap-1"
-              onClick={() => router.push(`/oficina/${osId}`)}
+              onClick={handleDismiss}
             >
               <X className="size-4" />
               Não enviar
             </Button>
           </div>
 
-          <p className="mt-3 text-xs text-emerald-600 break-all">
-            Link de acompanhamento: {trackingUrl}
-          </p>
+          {trackingUrl && (
+            <p className="mt-3 text-xs text-emerald-600 break-all">
+              Link de acompanhamento: {trackingUrl}
+            </p>
+          )}
         </div>
       </div>
     </div>

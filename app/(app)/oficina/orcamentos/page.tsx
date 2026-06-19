@@ -74,7 +74,7 @@ export default async function OrcamentosPage({
           description={`${count ?? 0} orçamento${(count ?? 0) !== 1 ? "s" : ""}`}
         />
         <Button asChild size="sm">
-          <Link href="/oficina"><Plus className="mr-1 h-4 w-4" />Novo Orçamento</Link>
+          <Link href="/oficina/orcamentos/nova"><Plus className="mr-1 h-4 w-4" />Novo Orçamento</Link>
         </Button>
       </div>
 
@@ -98,10 +98,10 @@ export default async function OrcamentosPage({
         <EmptyState
           icon={FileText}
           title="Nenhum orçamento encontrado"
-          description="Gere um orçamento a partir de uma OS."
+          description="Crie seu primeiro orçamento para um cliente."
         >
           <Button asChild size="sm">
-            <Link href="/oficina">Ver OS</Link>
+            <Link href="/oficina/orcamentos/nova">Novo Orçamento</Link>
           </Button>
         </EmptyState>
       ) : (

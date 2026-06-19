@@ -35,13 +35,10 @@ function fmtDate(d: string | null | undefined) {
 
 export default async function QuoteDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ autoSend?: string }>
 }) {
   const { id } = await params
-  const { autoSend } = await searchParams
   const user = await getAuthUser()
   if (!user) redirect("/login")
 
@@ -79,6 +76,7 @@ export default async function QuoteDetailPage({
   const os = q.service_orders
   const isPending = q.status === "pendente"
 
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -98,14 +96,13 @@ export default async function QuoteDetailPage({
         <WhatsAppActions
           customerName={customer?.name ?? "Cliente"}
           customerWhatsapp={customer?.whatsapp ?? customer?.phone ?? null}
-          orderNumber={os?.order_number ?? ""}
           quoteNumber={q.quote_number}
           total={q.total ?? 0}
-          trackingToken={os?.tracking_token ?? ""}
           storeName={(settings as any)?.business_name ?? "ScooterGestor"}
-          osId={os?.id ?? ""}
           appUrl={APP_URL}
-          autoOpen={autoSend === "1"}
+          orderNumber={os?.order_number}
+          trackingToken={os?.tracking_token}
+          osId={os?.id}
         />
       )}
 
@@ -184,11 +181,11 @@ export default async function QuoteDetailPage({
           </Card>
 
           {/* Approve/reject actions — only when pending */}
-          {isPending && os?.id && (
+          {isPending && (
             <Card>
               <CardHeader><CardTitle className="text-sm">Cliente aprovou?</CardTitle></CardHeader>
               <CardContent>
-                <QuoteStatusActions quoteId={id} osId={os.id} />
+                <QuoteStatusActions quoteId={id} />
               </CardContent>
             </Card>
           )}

@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X, Hash } from "lucide-react"
 import { confirmSaleAction, type CartItem, type PaymentEntry } from "@/lib/actions/sales"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
+import { QuickCustomerDialog } from "@/components/customers/quick-customer-dialog"
 
 interface InstallmentFee { installments: number; fee: number }
 
@@ -66,7 +67,7 @@ const FALLBACK_METHODS: PaymentMethod[] = Object.entries(PAYMENT_METHOD_LABELS)
 
 export function PdvClient({
   products,
-  customers,
+  customers: initialCustomers,
   paymentMethods,
 }: {
   products: Product[]
@@ -77,8 +78,14 @@ export function PdvClient({
   const [isPending, startTransition] = useTransition()
   const [cart, setCart] = useState<CartItem[]>([])
   const [search, setSearch] = useState("")
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
   const [customerId, setCustomerId] = useState<string>("none")
   const [notes, setNotes] = useState("")
+
+  function handleCustomerCreated(customer: { id: string; name: string }) {
+    setCustomers(prev => [...prev, { ...customer, phone: null }].sort((a, b) => a.name.localeCompare(b.name)))
+    setCustomerId(customer.id)
+  }
 
   // Discount
   const [chassisNumbers, setChassisNumbers] = useState<Record<string, string>>({})
@@ -340,7 +347,7 @@ export function PdvClient({
       <div className="space-y-4">
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-sm">Cliente (opcional)</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <Select value={customerId} onValueChange={setCustomerId}>
               <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
               <SelectContent>
@@ -350,6 +357,7 @@ export function PdvClient({
                 ))}
               </SelectContent>
             </Select>
+            <QuickCustomerDialog onCreated={handleCustomerCreated} />
           </CardContent>
         </Card>
 

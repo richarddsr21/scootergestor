@@ -92,6 +92,40 @@ export async function deleteCustomerAction(id: string): Promise<ActionState> {
   return { success: "Cliente excluído" }
 }
 
+export async function quickCreateCustomerAction(data: {
+  name: string
+  phone?: string
+  whatsapp?: string
+}): Promise<{ error?: string; id?: string }> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+
+  if (!data.name || data.name.trim().length < 2) return { error: "Nome é obrigatório" }
+
+  const { data: created, error } = await ctx.supabase
+    .from("customers")
+    .insert({
+      company_id: ctx.profile.company_id,
+      name: data.name.trim(),
+      phone: data.phone?.trim() || null,
+      whatsapp: data.whatsapp?.trim() || null,
+      email: null,
+      cpf_cnpj: null,
+      address: null,
+      city: null,
+      state: null,
+      zip_code: null,
+      notes: null,
+    })
+    .select("id")
+    .single()
+
+  if (error) return { error: "Erro ao criar cliente" }
+
+  revalidatePath("/clientes")
+  return { id: created.id }
+}
+
 // ─── VEÍCULOS ─────────────────────────────────────────────────────────────────
 
 const vehicleSchema = z.object({

@@ -15,11 +15,21 @@ async function getCtx() {
   return { supabase, user, profile }
 }
 
+const lineItemSchema = z.object({
+  item_type: z.enum(["part", "service", "labor"]),
+  product_id: z.string().optional(),
+  description: z.string().min(1),
+  quantity: z.number().positive(),
+  unit_price: z.number().nonnegative(),
+  total: z.number().nonnegative(),
+})
+
 const createQuoteSchema = z.object({
-  service_order_id: z.string().min(1, "OS é obrigatória"),
-  customer_id: z.string().min(1),
+  customer_id: z.string().min(1, "Cliente é obrigatório"),
   valid_until: z.string().optional(),
   notes: z.string().optional(),
+  items: z.string().default("[]"),
+  discount: z.coerce.number().nonnegative().default(0),
 })
 
 export async function createQuoteAction(
@@ -31,6 +41,20 @@ export async function createQuoteAction(
 
   const parsed = createQuoteSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  let lineItems: z.infer<typeof lineItemSchema>[] = []
+  try {
+    const raw = JSON.parse(parsed.data.items)
+    lineItems = z.array(lineItemSchema).parse(raw)
+  } catch {
+    return { error: "Itens inválidos" }
+  }
+
+  if (lineItems.length === 0) return { error: "Adicione ao menos um item ao orçamento" }
+
+  const subtotal = lineItems.reduce((s, i) => s + i.total, 0)
+  const discount = Math.min(parsed.data.discount, subtotal)
+  const total = Math.max(0, subtotal - discount)
 
   const { count } = await ctx.supabase
     .from("quotes").select("*", { count: "exact", head: true })
@@ -44,11 +68,11 @@ export async function createQuoteAction(
       company_id: ctx.profile.company_id,
       quote_number: quoteNumber,
       customer_id: parsed.data.customer_id,
-      service_order_id: parsed.data.service_order_id,
+      service_order_id: null,
       status: "pendente",
-      subtotal: 0,
-      discount: 0,
-      total: 0,
+      subtotal,
+      discount,
+      total,
       approved_at: null,
       rejected_at: null,
       valid_until: parsed.data.valid_until || null,
@@ -59,48 +83,20 @@ export async function createQuoteAction(
 
   if (error) return { error: "Erro ao criar orçamento" }
 
-  // Copy items from OS (if any) to quote
-  const { data: osItems } = await ctx.supabase
-    .from("service_order_items")
-    .select("item_type, description, product_id, quantity, unit_price, total")
-    .eq("service_order_id", parsed.data.service_order_id)
-    .eq("company_id", ctx.profile.company_id)
-
-  if (osItems && osItems.length > 0) {
-    await ctx.supabase.from("quote_items").insert(
-      osItems.map(item => ({
-        company_id: ctx.profile.company_id,
-        quote_id: quote.id,
-        product_id: item.product_id,
-        item_type: item.item_type,
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total: item.total,
-      }))
-    )
-    const subtotal = osItems.reduce((s, i) => s + i.total, 0)
-    await ctx.supabase.from("quotes").update({ subtotal, total: subtotal }).eq("id", quote.id)
-  }
-
-  // Move OS to "Aguardando Aprovação" status
-  const { data: waitStatus } = await ctx.supabase
-    .from("service_order_statuses")
-    .select("id")
-    .eq("company_id", ctx.profile.company_id)
-    .eq("slug", "aguardando-aprovacao")
-    .maybeSingle()
-
-  if (waitStatus) {
-    await ctx.supabase
-      .from("service_orders")
-      .update({ status_id: waitStatus.id })
-      .eq("id", parsed.data.service_order_id)
-      .eq("company_id", ctx.profile.company_id)
-  }
+  await ctx.supabase.from("quote_items").insert(
+    lineItems.map(item => ({
+      company_id: ctx.profile.company_id,
+      quote_id: quote.id,
+      product_id: item.product_id && item.product_id !== "" ? item.product_id : null,
+      item_type: item.item_type,
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total: item.total,
+    }))
+  )
 
   revalidatePath("/oficina/orcamentos")
-  revalidatePath(`/oficina/${parsed.data.service_order_id}`)
   return { success: "Orçamento criado", id: quote.id }
 }
 
@@ -112,18 +108,6 @@ const itemSchema = z.object({
   quantity: z.coerce.number().positive().default(1),
   unit_price: z.coerce.number().nonnegative(),
 })
-
-async function recalcOsTotals(ctx: Awaited<ReturnType<typeof getCtx>>, osId: string) {
-  if (!ctx) return
-  const { data: osItems } = await ctx.supabase
-    .from("service_order_items").select("item_type, total").eq("service_order_id", osId)
-  if (!osItems) return
-  const labor_total = osItems.filter(i => i.item_type === "labor").reduce((s, i) => s + i.total, 0)
-  const parts_total = osItems.filter(i => i.item_type !== "labor").reduce((s, i) => s + i.total, 0)
-  await ctx.supabase.from("service_orders")
-    .update({ labor_total, parts_total, total: labor_total + parts_total })
-    .eq("id", osId).eq("company_id", ctx.profile.company_id)
-}
 
 export async function addQuoteItemAction(
   _prev: ActionState,
@@ -139,14 +123,6 @@ export async function addQuoteItemAction(
   const resolvedProductId = product_id && product_id !== "" && product_id !== "none" ? product_id : null
   const total = rest.quantity * rest.unit_price
 
-  // Fetch quote (for service_order_id) and product cost in parallel
-  const [{ data: quote }, { data: product }] = await Promise.all([
-    ctx.supabase.from("quotes").select("service_order_id").eq("id", quote_id).eq("company_id", ctx.profile.company_id).single(),
-    resolvedProductId
-      ? ctx.supabase.from("products").select("cost_price").eq("id", resolvedProductId).single()
-      : Promise.resolve({ data: null }),
-  ])
-
   const { error } = await ctx.supabase.from("quote_items").insert({
     company_id: ctx.profile.company_id,
     quote_id,
@@ -156,23 +132,6 @@ export async function addQuoteItemAction(
   })
 
   if (error) return { error: "Erro ao adicionar item" }
-
-  // Sync to linked OS
-  if (quote?.service_order_id) {
-    await ctx.supabase.from("service_order_items").insert({
-      company_id: ctx.profile.company_id,
-      service_order_id: quote.service_order_id,
-      product_id: resolvedProductId,
-      item_type: rest.item_type,
-      description: rest.description,
-      quantity: rest.quantity,
-      unit_price: rest.unit_price,
-      cost_price: (product as any)?.cost_price ?? 0,
-      total,
-    })
-    await recalcOsTotals(ctx, quote.service_order_id)
-    revalidatePath(`/oficina/${quote.service_order_id}`)
-  }
 
   const { data: quoteItems } = await ctx.supabase
     .from("quote_items").select("total").eq("quote_id", quote_id)
@@ -190,34 +149,11 @@ export async function deleteQuoteItemAction(
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
 
-  // Fetch item details + quote's service_order_id before deleting
-  const [{ data: item }, { data: quote }] = await Promise.all([
-    ctx.supabase.from("quote_items").select("description, item_type, product_id").eq("id", itemId).eq("company_id", ctx.profile.company_id).single(),
-    ctx.supabase.from("quotes").select("service_order_id").eq("id", quoteId).eq("company_id", ctx.profile.company_id).single(),
-  ])
-
   const { error } = await ctx.supabase
     .from("quote_items").delete()
     .eq("id", itemId).eq("company_id", ctx.profile.company_id)
 
   if (error) return { error: "Erro ao remover item" }
-
-  // Sync removal to linked OS — match by description in the same OS
-  if (item && quote?.service_order_id) {
-    const { data: osItems } = await ctx.supabase
-      .from("service_order_items")
-      .select("id")
-      .eq("service_order_id", quote.service_order_id)
-      .eq("company_id", ctx.profile.company_id)
-      .eq("description", item.description)
-      .limit(1)
-
-    if (osItems && osItems.length > 0) {
-      await ctx.supabase.from("service_order_items").delete().eq("id", osItems[0].id).eq("company_id", ctx.profile.company_id)
-    }
-    await recalcOsTotals(ctx, quote.service_order_id)
-    revalidatePath(`/oficina/${quote.service_order_id}`)
-  }
 
   const { data: quoteItems } = await ctx.supabase
     .from("quote_items").select("total").eq("quote_id", quoteId)
@@ -228,41 +164,22 @@ export async function deleteQuoteItemAction(
   return { success: "Item removido" }
 }
 
-export async function approveQuoteAction(
-  quoteId: string,
-  osId: string
-): Promise<ActionState> {
+export async function approveQuoteAction(quoteId: string): Promise<ActionState> {
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
 
   const now = new Date().toISOString()
 
-  const { error: qErr } = await ctx.supabase
+  const { error } = await ctx.supabase
     .from("quotes")
     .update({ status: "aprovado", approved_at: now })
     .eq("id", quoteId)
     .eq("company_id", ctx.profile.company_id)
 
-  if (qErr) return { error: "Erro ao aprovar orçamento" }
-
-  const { data: aprovadaStatus } = await ctx.supabase
-    .from("service_order_statuses")
-    .select("id")
-    .eq("company_id", ctx.profile.company_id)
-    .eq("slug", "aprovada")
-    .maybeSingle()
-
-  if (aprovadaStatus) {
-    await ctx.supabase
-      .from("service_orders")
-      .update({ status_id: aprovadaStatus.id })
-      .eq("id", osId)
-      .eq("company_id", ctx.profile.company_id)
-  }
+  if (error) return { error: "Erro ao aprovar orçamento" }
 
   revalidatePath(`/oficina/orcamentos/${quoteId}`)
-  revalidatePath(`/oficina/${osId}`)
-  return { success: "Orçamento aprovado — OS atualizada" }
+  return { success: "Orçamento aprovado" }
 }
 
 export async function rejectQuoteAction(quoteId: string): Promise<ActionState> {

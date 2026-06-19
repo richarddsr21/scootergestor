@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect } from "react"
+import { useActionState, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -10,18 +10,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createServiceOrderAction } from "@/lib/actions/service-orders"
 import { OS_PRIORITY_LABELS } from "@/lib/constants"
+import { QuickCustomerDialog } from "@/components/customers/quick-customer-dialog"
+
+interface Customer { id: string; name: string }
 
 interface Props {
-  customers: { id: string; name: string }[]
+  customers: Customer[]
   technicians: { id: string; name: string }[]
   defaultCustomerId?: string
 }
 
 const INIT = { error: undefined, success: undefined }
 
-export function NovaOsForm({ customers, technicians, defaultCustomerId }: Props) {
+export function NovaOsForm({ customers: initialCustomers, technicians, defaultCustomerId }: Props) {
   const router = useRouter()
   const [state, action, pending] = useActionState(createServiceOrderAction, INIT)
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
+  const [customerId, setCustomerId] = useState(defaultCustomerId ?? "")
 
   useEffect(() => {
     if (state.success) {
@@ -31,17 +36,29 @@ export function NovaOsForm({ customers, technicians, defaultCustomerId }: Props)
     if (state.error) toast.error(state.error)
   }, [state])
 
+  function handleCustomerCreated(customer: Customer) {
+    setCustomers(prev => [...prev, customer].sort((a, b) => a.name.localeCompare(b.name)))
+    setCustomerId(customer.id)
+  }
+
   return (
     <form action={action} className="space-y-6 max-w-2xl">
+      <input type="hidden" name="customer_id" value={customerId} />
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="customer_id">Cliente *</Label>
-          <Select name="customer_id" defaultValue={defaultCustomerId ?? undefined} required>
-            <SelectTrigger id="customer_id"><SelectValue placeholder="Selecionar cliente..." /></SelectTrigger>
-            <SelectContent>
-              {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="customer_id_sel">Cliente *</Label>
+          <div className="flex gap-2">
+            <Select value={customerId} onValueChange={setCustomerId} required>
+              <SelectTrigger id="customer_id_sel" className="flex-1">
+                <SelectValue placeholder="Selecionar cliente..." />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <QuickCustomerDialog onCreated={handleCustomerCreated} />
+          </div>
         </div>
 
         <div className="space-y-1.5">
@@ -117,7 +134,7 @@ export function NovaOsForm({ customers, technicians, defaultCustomerId }: Props)
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>{pending ? "Criando OS..." : "Abrir OS"}</Button>
+        <Button type="submit" disabled={pending || !customerId}>{pending ? "Criando OS..." : "Abrir OS"}</Button>
         <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
       </div>
     </form>
