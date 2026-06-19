@@ -106,6 +106,7 @@ export async function openCashRegisterAction(
   if (error) return { error: "Erro ao abrir caixa" }
 
   revalidatePath("/caixa")
+  revalidatePath("/vendas/nova")
   return { success: "Caixa aberto com sucesso" }
 }
 

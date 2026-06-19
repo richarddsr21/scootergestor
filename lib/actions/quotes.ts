@@ -198,3 +198,67 @@ export async function rejectQuoteAction(quoteId: string): Promise<ActionState> {
   revalidatePath(`/oficina/orcamentos/${quoteId}`)
   return { success: "Orçamento rejeitado" }
 }
+
+// ─── export ───────────────────────────────────────────────────────────────────
+
+export interface OrcamentoExportData {
+  quote: {
+    quote_number: string
+    status: string
+    subtotal: number
+    discount: number
+    total: number
+    notes: string | null
+    valid_until: string | null
+    created_at: string
+    approved_at: string | null
+    rejected_at: string | null
+  }
+  customer: { name: string; phone: string | null; whatsapp: string | null; email: string | null; cpf_cnpj: string | null } | null
+  os: { order_number: string } | null
+  items: { description: string; item_type: string; quantity: number; unit_price: number; total: number }[]
+  companyName: string
+}
+
+export async function exportOrcamentoAction(quoteId: string): Promise<OrcamentoExportData | null> {
+  const ctx = await getCtx()
+  if (!ctx) return null
+  const cid = ctx.profile.company_id
+
+  const [
+    { data: quote },
+    { data: items },
+    { data: settings },
+  ] = await Promise.all([
+    ctx.supabase.from("quotes")
+      .select("*, customers(name, phone, whatsapp, email, cpf_cnpj), service_orders(order_number)")
+      .eq("id", quoteId).eq("company_id", cid).single(),
+    ctx.supabase.from("quote_items")
+      .select("description, item_type, quantity, unit_price, total")
+      .eq("quote_id", quoteId).eq("company_id", cid).order("created_at"),
+    ctx.supabase.from("company_settings")
+      .select("business_name").eq("company_id", cid).maybeSingle(),
+  ])
+
+  if (!quote) return null
+  const q = quote as any
+
+  return {
+    quote: {
+      quote_number: q.quote_number,
+      status: q.status,
+      subtotal: q.subtotal ?? 0,
+      discount: q.discount ?? 0,
+      total: q.total ?? 0,
+      notes: q.notes ?? null,
+      valid_until: q.valid_until ?? null,
+      created_at: q.created_at,
+      approved_at: q.approved_at ?? null,
+      rejected_at: q.rejected_at ?? null,
+    },
+    customer: q.customers ?? null,
+    os: q.service_orders ?? null,
+    items: (items ?? []) as OrcamentoExportData["items"],
+    companyName: (settings as any)?.business_name ?? "ScooterGestor",
+  }
+}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Pencil, Package, TrendingUp, TrendingDown } from "lucide-react"
 import { StockAdjustButton } from "@/components/products/stock-adjust-button"
+import { DeleteProductButton } from "@/components/products/delete-product-button"
 import { PRODUCT_TYPE_LABELS } from "@/lib/constants"
 
 function fmt(n: number) {
@@ -65,6 +66,7 @@ export default async function ProdutoDetailPage({
           <Button asChild size="sm" variant="outline">
             <Link href={`/produtos/${id}/editar`}><Pencil className="mr-1 h-4 w-4" />Editar</Link>
           </Button>
+          <DeleteProductButton productId={id} productName={product.name} redirectTo="/produtos" />
         </div>
       </div>
 

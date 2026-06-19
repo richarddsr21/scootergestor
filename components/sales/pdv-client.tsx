@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
+import { useActionState, useEffect, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,10 +10,62 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X, Hash } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X, Hash, LockKeyhole } from "lucide-react"
 import { confirmSaleAction, type CartItem, type PaymentEntry } from "@/lib/actions/sales"
+import { openCashRegisterAction } from "@/lib/actions/cash"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
 import { QuickCustomerDialog } from "@/components/customers/quick-customer-dialog"
+
+const CASH_INIT = { error: undefined, success: undefined }
+
+function CaixaFechadoDialog({ onSuccess }: { onSuccess: () => void }) {
+  const [open, setOpen] = useState(true)
+  const [state, action, pending] = useActionState(openCashRegisterAction, CASH_INIT)
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success(state.success)
+      onSuccess()
+    }
+    if (state.error) toast.error(state.error)
+  }, [state, onSuccess])
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <LockKeyhole className="h-5 w-5 text-amber-500" />
+            <DialogTitle>Caixa fechado</DialogTitle>
+          </div>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground -mt-1">
+          É necessário abrir o caixa antes de registrar uma venda.
+        </p>
+        <form action={action} className="space-y-4 pt-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="initial_amount">Fundo de caixa (R$)</Label>
+            <Input
+              id="initial_amount"
+              name="initial_amount"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0,00"
+              defaultValue="0"
+              required
+            />
+            <p className="text-xs text-muted-foreground">Valor em dinheiro que já está na gaveta ao abrir.</p>
+          </div>
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? "Abrindo..." : "Abrir caixa"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 interface InstallmentFee { installments: number; fee: number }
 
@@ -69,10 +121,12 @@ export function PdvClient({
   products,
   customers: initialCustomers,
   paymentMethods,
+  caixaAberto = true,
 }: {
   products: Product[]
   customers: Customer[]
   paymentMethods: PaymentMethod[]
+  caixaAberto?: boolean
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -225,6 +279,8 @@ export function PdvClient({
   }
 
   return (
+    <>
+    {!caixaAberto && <CaixaFechadoDialog onSuccess={() => router.refresh()} />}
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-4">
         <Card>
@@ -564,5 +620,6 @@ export function PdvClient({
         </Card>
       </div>
     </div>
+    </>
   )
 }

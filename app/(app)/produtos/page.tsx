@@ -9,8 +9,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/shared/empty-state"
 import { SearchInput } from "@/components/shared/search-input"
 import { Pagination } from "@/components/shared/pagination"
-import { Plus, Package, AlertTriangle } from "lucide-react"
+import { Plus, Package, AlertTriangle, Pencil } from "lucide-react"
 import { PRODUCT_TYPE_LABELS } from "@/lib/constants"
+import { DeleteProductButton } from "@/components/products/delete-product-button"
 
 const PAGE_SIZE = 20
 
@@ -119,9 +120,12 @@ export default async function ProdutosPage({
                         </span>
                       </td>
                       <td className="p-3">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/produtos/${p.id}`}>Ver</Link>
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                            <Link href={`/produtos/${p.id}/editar`}><Pencil className="h-3.5 w-3.5" /></Link>
+                          </Button>
+                          <DeleteProductButton productId={p.id} productName={p.name} />
+                        </div>
                       </td>
                     </tr>
                   )

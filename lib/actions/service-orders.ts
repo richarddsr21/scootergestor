@@ -566,3 +566,99 @@ export async function payServiceOrderAction(
 
   return { success: payment_status === "pago" ? "Pagamento registrado" : "Pagamento parcial registrado" }
 }
+
+// ─── export ───────────────────────────────────────────────────────────────────
+
+export interface OsExportData {
+  os: {
+    order_number: string
+    priority: string
+    reported_problem: string
+    technical_diagnosis: string | null
+    internal_notes: string | null
+    customer_notes: string | null
+    vehicle_brand: string | null
+    vehicle_model: string | null
+    vehicle_chassis: string | null
+    mileage_km: number | null
+    created_at: string
+    expected_delivery_at: string | null
+    completed_at: string | null
+    delivered_at: string | null
+    labor_total: number
+    parts_total: number
+    discount: number
+    total: number
+    payment_status: string
+  }
+  customer: { name: string; phone: string | null; whatsapp: string | null; email: string | null; cpf_cnpj: string | null } | null
+  technician: { name: string } | null
+  status: { name: string; color: string } | null
+  items: { description: string; item_type: string; quantity: number; unit_price: number; total: number }[]
+  checklist: { label: string; value: string | null; notes: string | null }[]
+  payments: { method: string; amount: number; installments: number; paid_at: string | null }[]
+  companyName: string
+}
+
+export async function exportOsAction(osId: string): Promise<OsExportData | null> {
+  const ctx = await getCtx()
+  if (!ctx) return null
+  const cid = ctx.profile.company_id
+
+  const [
+    { data: os },
+    { data: items },
+    { data: checklist },
+    { data: payments },
+    { data: settings },
+  ] = await Promise.all([
+    ctx.supabase.from("service_orders")
+      .select("*, customers(name, phone, whatsapp, email, cpf_cnpj), service_order_statuses(name, color), profiles(name)")
+      .eq("id", osId).eq("company_id", cid).single(),
+    ctx.supabase.from("service_order_items")
+      .select("description, item_type, quantity, unit_price, total")
+      .eq("service_order_id", osId).eq("company_id", cid).order("created_at"),
+    ctx.supabase.from("service_order_checklists")
+      .select("label, value, notes")
+      .eq("service_order_id", osId).eq("company_id", cid).order("created_at"),
+    ctx.supabase.from("payments")
+      .select("method, amount, installments, paid_at")
+      .eq("service_order_id", osId).eq("company_id", cid),
+    ctx.supabase.from("company_settings")
+      .select("business_name").eq("company_id", cid).maybeSingle(),
+  ])
+
+  if (!os) return null
+  const o = os as any
+
+  return {
+    os: {
+      order_number: o.order_number,
+      priority: o.priority,
+      reported_problem: o.reported_problem,
+      technical_diagnosis: o.technical_diagnosis ?? null,
+      internal_notes: o.internal_notes ?? null,
+      customer_notes: o.customer_notes ?? null,
+      vehicle_brand: o.vehicle_brand ?? null,
+      vehicle_model: o.vehicle_model ?? null,
+      vehicle_chassis: o.vehicle_chassis ?? null,
+      mileage_km: o.mileage_km ?? null,
+      created_at: o.created_at,
+      expected_delivery_at: o.expected_delivery_at ?? null,
+      completed_at: o.completed_at ?? null,
+      delivered_at: o.delivered_at ?? null,
+      labor_total: o.labor_total ?? 0,
+      parts_total: o.parts_total ?? 0,
+      discount: o.discount ?? 0,
+      total: o.total ?? 0,
+      payment_status: o.payment_status,
+    },
+    customer: o.customers ?? null,
+    technician: o.profiles ?? null,
+    status: o.service_order_statuses ?? null,
+    items: (items ?? []) as OsExportData["items"],
+    checklist: (checklist ?? []) as OsExportData["checklist"],
+    payments: (payments ?? []) as OsExportData["payments"],
+    companyName: (settings as any)?.business_name ?? "ScooterGestor",
+  }
+}

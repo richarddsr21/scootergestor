@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, User, Wrench, FileText } from "lucide-react"
+import { OsExportButton } from "@/components/service-orders/os-export-button"
 import { OsStatusSelector } from "@/components/service-orders/os-status-selector"
 import { OsItemsSection } from "@/components/service-orders/os-items-section"
 import { OsChecklistSection } from "@/components/service-orders/os-checklist-section"
@@ -110,6 +111,7 @@ export default async function OsDetailPage({
               {status.name}
             </span>
           )}
+          <OsExportButton osId={id} orderNumber={os.order_number} />
           {existingQuote ? (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/oficina/orcamentos/${existingQuote.id}`}>

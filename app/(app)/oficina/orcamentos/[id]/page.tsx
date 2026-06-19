@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, ExternalLink } from "lucide-react"
+import { OrcamentoExportButton } from "@/components/quotes/orcamento-export-button"
 import { WhatsAppActions } from "@/components/quotes/whatsapp-actions"
 import { QuoteItemsSection } from "@/components/quotes/quote-items-section"
 import { QuoteStatusActions } from "@/components/quotes/quote-status-actions"
@@ -86,9 +87,12 @@ export default async function QuoteDetailPage({
           </Button>
           <PageHeader title={q.quote_number} description="Orçamento" />
         </div>
-        <span className={`text-sm px-3 py-1 rounded-full font-medium ${STATUS_COLORS[q.status] ?? ""}`}>
-          {STATUS_LABELS[q.status] ?? q.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <OrcamentoExportButton quoteId={id} quoteNumber={q.quote_number} />
+          <span className={`text-sm px-3 py-1 rounded-full font-medium ${STATUS_COLORS[q.status] ?? ""}`}>
+            {STATUS_LABELS[q.status] ?? q.status}
+          </span>
+        </div>
       </div>
 
       {/* WhatsApp CTA — shown while pending */}
