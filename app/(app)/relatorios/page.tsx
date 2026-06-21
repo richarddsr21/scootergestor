@@ -136,7 +136,7 @@ export default async function RelatoriosPage({
     supabase.from("company_settings").select("business_name").eq("company_id", cid).maybeSingle(),
   ])
 
-  const payments = paymentsRaw ?? []
+  const payments: any[] = (paymentsRaw as any) ?? []
   const os = osAll ?? []
   const sales = salesData ?? []
 

@@ -521,7 +521,7 @@ export async function payServiceOrderAction(
       fee_absorbed: e.fee_absorbed,
       installments: e.installments,
       paid_at: now,
-    }))
+    })) as any
   )
 
   if (error) return { error: "Erro ao registrar pagamento" }

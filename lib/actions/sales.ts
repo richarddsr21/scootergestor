@@ -168,7 +168,7 @@ export async function confirmSaleAction(
       fee_absorbed: entry.fee_absorbed,
       installments: entry.installments,
       paid_at: new Date().toISOString(),
-    })
+    } as any)
   ))
 
   const paymentError = paymentResults.find(r => r.error)

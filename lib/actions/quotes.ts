@@ -81,7 +81,7 @@ export async function createQuoteAction(
       rejected_at: null,
       valid_until: parsed.data.valid_until || null,
       notes: parsed.data.notes?.trim() || null,
-    })
+    } as any)
     .select("id")
     .single()
 
