@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { saveSupplierAction } from "@/lib/actions/suppliers"
+import { CpfCnpjField } from "@/components/ui/cpf-cnpj-field"
 
 interface Props {
   supplier?: {
@@ -49,10 +50,7 @@ export function SupplierForm({ supplier }: Props) {
           <Label htmlFor="name">Nome / Razão social *</Label>
           <Input id="name" name="name" required defaultValue={supplier?.name ?? ""} placeholder="Nome do fornecedor" />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="cnpj">CNPJ</Label>
-          <Input id="cnpj" name="cnpj" defaultValue={supplier?.cnpj ?? ""} placeholder="00.000.000/0001-00" />
-        </div>
+        <CpfCnpjField name="cnpj" defaultValue={supplier?.cnpj ?? ""} />
         <div className="space-y-1.5">
           <Label htmlFor="email">E-mail</Label>
           <Input id="email" name="email" type="email" defaultValue={supplier?.email ?? ""} placeholder="contato@fornecedor.com" />

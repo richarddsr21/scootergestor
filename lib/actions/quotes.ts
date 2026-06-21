@@ -16,7 +16,7 @@ async function getCtx() {
 }
 
 const lineItemSchema = z.object({
-  item_type: z.enum(["part", "service", "labor"]),
+  item_type: z.enum(["scooter", "part", "service", "labor"]),
   product_id: z.string().optional(),
   description: z.string().min(1),
   quantity: z.number().positive(),
@@ -26,6 +26,8 @@ const lineItemSchema = z.object({
 
 const createQuoteSchema = z.object({
   customer_id: z.string().min(1, "Cliente é obrigatório"),
+  vehicle_brand: z.string().optional(),
+  vehicle_model: z.string().optional(),
   valid_until: z.string().optional(),
   notes: z.string().optional(),
   items: z.string().default("[]"),
@@ -68,6 +70,8 @@ export async function createQuoteAction(
       company_id: ctx.profile.company_id,
       quote_number: quoteNumber,
       customer_id: parsed.data.customer_id,
+      vehicle_brand: parsed.data.vehicle_brand?.trim() || null,
+      vehicle_model: parsed.data.vehicle_model?.trim() || null,
       service_order_id: null,
       status: "pendente",
       subtotal,
@@ -83,7 +87,7 @@ export async function createQuoteAction(
 
   if (error) return { error: "Erro ao criar orçamento" }
 
-  await ctx.supabase.from("quote_items").insert(
+  const { error: itemsError } = await ctx.supabase.from("quote_items").insert(
     lineItems.map(item => ({
       company_id: ctx.profile.company_id,
       quote_id: quote.id,
@@ -96,13 +100,18 @@ export async function createQuoteAction(
     }))
   )
 
+  if (itemsError) {
+    await ctx.supabase.from("quotes").delete().eq("id", quote.id)
+    return { error: "Erro ao salvar itens do orçamento" }
+  }
+
   revalidatePath("/oficina/orcamentos")
   return { success: "Orçamento criado", id: quote.id }
 }
 
 const itemSchema = z.object({
   quote_id: z.string(),
-  item_type: z.enum(["part", "service", "labor"]).default("part"),
+  item_type: z.enum(["scooter", "part", "service", "labor"]).default("part"),
   description: z.string().min(1, "Descrição é obrigatória"),
   product_id: z.string().optional(),
   quantity: z.coerce.number().positive().default(1),

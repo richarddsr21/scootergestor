@@ -101,7 +101,14 @@ export default async function QuoteDetailPage({
           customerName={customer?.name ?? "Cliente"}
           customerWhatsapp={customer?.whatsapp ?? customer?.phone ?? null}
           quoteNumber={q.quote_number}
+          subtotal={q.subtotal ?? 0}
+          discount={q.discount ?? 0}
           total={q.total ?? 0}
+          items={items ?? []}
+          validUntil={q.valid_until}
+          notes={q.notes}
+          vehicleBrand={(q as any).vehicle_brand}
+          vehicleModel={(q as any).vehicle_model}
           storeName={(settings as any)?.business_name ?? "ScooterGestor"}
           appUrl={APP_URL}
           orderNumber={os?.order_number}

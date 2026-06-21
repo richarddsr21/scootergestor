@@ -24,14 +24,14 @@ interface Props {
 
 interface LineItem {
   key: number
-  item_type: "part" | "service" | "labor"
+  item_type: "scooter" | "part" | "service" | "labor"
   product_id: string
   description: string
   quantity: number
   unit_price: number
 }
 
-const TYPES = { part: "Peça", service: "Serviço", labor: "Mão de obra" } as const
+const TYPES = { scooter: "Scooter", part: "Peça", service: "Serviço", labor: "Mão de obra" } as const
 const INIT = { error: undefined, success: undefined }
 
 function fmt(n: number) {
@@ -124,6 +124,23 @@ export function NovaOrcamentoForm({ customers: initialCustomers, products }: Pro
         <div className="space-y-1.5">
           <Label htmlFor="valid_until">Válido até</Label>
           <Input id="valid_until" name="valid_until" type="date" />
+        </div>
+      </div>
+
+      {/* Veículo em manutenção (opcional) */}
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+          Veículo em manutenção <span className="normal-case font-normal">(opcional — preencha se o orçamento for para reparo)</span>
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="vehicle_brand">Marca</Label>
+            <Input id="vehicle_brand" name="vehicle_brand" placeholder="Ex: Garelli, Xiaomi, Voltz..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="vehicle_model">Modelo</Label>
+            <Input id="vehicle_model" name="vehicle_model" placeholder="Ex: X11, X13, STREET..." />
+          </div>
         </div>
       </div>
 

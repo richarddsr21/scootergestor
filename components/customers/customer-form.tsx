@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { saveCustomerAction } from "@/lib/actions/customers"
+import { CpfCnpjField } from "@/components/ui/cpf-cnpj-field"
 
 interface Props {
   customer?: {
@@ -65,10 +66,7 @@ export function CustomerForm({ customer }: Props) {
           <Label htmlFor="email">E-mail</Label>
           <Input id="email" name="email" type="email" defaultValue={customer?.email ?? ""} placeholder="email@exemplo.com" />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="cpf_cnpj">CPF / CNPJ</Label>
-          <Input id="cpf_cnpj" name="cpf_cnpj" defaultValue={customer?.cpf_cnpj ?? ""} placeholder="000.000.000-00" />
-        </div>
+        <CpfCnpjField name="cpf_cnpj" defaultValue={customer?.cpf_cnpj ?? ""} />
         <div className="sm:col-span-2 space-y-1.5">
           <Label htmlFor="address">Endereço</Label>
           <Input id="address" name="address" defaultValue={customer?.address ?? ""} placeholder="Rua, número, bairro" />

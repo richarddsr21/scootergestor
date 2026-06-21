@@ -35,6 +35,7 @@ interface Props {
 }
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
+  scooter: "Scooter",
   part: "Peça",
   service: "Serviço",
   labor: "Mão de obra",

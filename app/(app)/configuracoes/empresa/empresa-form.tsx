@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { updateCompanyInfoAction } from "@/lib/actions/settings"
 import type { Tables } from "@/types/database"
+import { CpfCnpjField } from "@/components/ui/cpf-cnpj-field"
 
 interface Props {
   company: Tables<"companies"> | null
@@ -41,10 +42,7 @@ export function EmpresaForm({ company, settings }: Props) {
             <Label htmlFor="legal_name">Razão social</Label>
             <Input id="legal_name" name="legal_name" defaultValue={settings?.legal_name ?? ""} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="cnpj">CNPJ</Label>
-            <Input id="cnpj" name="cnpj" placeholder="00.000.000/0001-00" defaultValue={settings?.cnpj ?? ""} />
-          </div>
+          <CpfCnpjField name="cnpj" defaultValue={settings?.cnpj ?? ""} className="space-y-2" />
         </div>
       </section>
 

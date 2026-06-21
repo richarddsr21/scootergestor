@@ -9,7 +9,7 @@ function fmtDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString("pt-BR")
 }
 
-const ITEM_TYPE_LABELS: Record<string, string> = { part: "Peça", service: "Serviço", labor: "M.O." }
+const ITEM_TYPE_LABELS: Record<string, string> = { scooter: "Scooter", part: "Peça", service: "Serviço", labor: "M.O." }
 const STATUS_LABELS: Record<string, string> = { pendente: "Pendente", aprovado: "Aprovado", rejeitado: "Rejeitado", expirado: "Expirado" }
 const STATUS_COLORS: Record<string, string> = { pendente: "#f59e0b", aprovado: "#16a34a", rejeitado: "#ef4444", expirado: "#64748b" }
 

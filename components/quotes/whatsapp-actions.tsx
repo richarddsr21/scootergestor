@@ -5,14 +5,27 @@ import { MessageCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 
+interface QuoteItem {
+  description: string
+  quantity: number
+  unit_price: number
+  total: number
+}
+
 interface Props {
   customerName: string
   customerWhatsapp: string | null
   quoteNumber: string
+  subtotal: number
+  discount: number
   total: number
+  items: QuoteItem[]
+  validUntil?: string | null
+  notes?: string | null
+  vehicleBrand?: string | null
+  vehicleModel?: string | null
   storeName: string
   appUrl: string
-  // OS-linked fields (optional — only for quotes created from an OS)
   orderNumber?: string
   trackingToken?: string
   osId?: string
@@ -25,11 +38,81 @@ function cleanPhone(raw: string): string {
   return `55${digits}`
 }
 
+function fmtBRL(n: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
+}
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString("pt-BR")
+}
+
+function buildMessage(params: {
+  customerName: string
+  quoteNumber: string
+  subtotal: number
+  discount: number
+  total: number
+  items: QuoteItem[]
+  validUntil?: string | null
+  notes?: string | null
+  vehicle: string
+  orderNumber?: string
+  trackingUrl: string | null
+  storeName: string
+}): string {
+  const { customerName, quoteNumber, subtotal, discount, total, items, validUntil, notes, vehicle, orderNumber, trackingUrl, storeName } = params
+
+  const itemLines = items.map(i => {
+    const qty = i.quantity % 1 === 0 ? String(Math.round(i.quantity)) : String(i.quantity)
+    if (i.quantity === 1) return `  • ${i.description} — ${fmtBRL(i.total)}`
+    return `  • ${qty}x ${i.description} — ${fmtBRL(i.total)} (${fmtBRL(i.unit_price)} un.)`
+  }).join("\n")
+
+  const sep = "-------------------"
+
+  const lines: string[] = [
+    `Olá, ${customerName}! 👋`,
+    "",
+    `Seu orçamento *${quoteNumber}* está pronto! Confira os detalhes:`,
+  ]
+
+  if (vehicle) lines.push(`🛵 Veículo: ${vehicle}`)
+  if (orderNumber) lines.push(`📋 OS vinculada: ${orderNumber}`)
+
+  lines.push("", `*Itens do orçamento:*`, itemLines, "", sep)
+
+  if (discount > 0) {
+    lines.push(`Subtotal: ${fmtBRL(subtotal)}`)
+    lines.push(`Desconto: −${fmtBRL(discount)}`)
+  }
+
+  lines.push(`💰 *Total: ${fmtBRL(total)}*`)
+
+  if (validUntil) lines.push(`📅 Válido até: ${fmtDate(validUntil)}`)
+
+  lines.push(sep)
+
+  if (notes) lines.push("", `📝 *Observações:*`, notes)
+
+  if (trackingUrl) lines.push("", `Acompanhe e responda pelo link:`, `👉 ${trackingUrl}`)
+
+  lines.push("", `Qualquer dúvida, é só chamar! 😊`, `— ${storeName}`)
+
+  return lines.join("\n")
+}
+
 export function WhatsAppActions({
   customerName,
   customerWhatsapp,
   quoteNumber,
+  subtotal,
+  discount,
   total,
+  items,
+  validUntil,
+  notes,
+  vehicleBrand,
+  vehicleModel,
   storeName,
   appUrl,
   orderNumber,
@@ -40,34 +123,23 @@ export function WhatsAppActions({
   const router = useRouter()
   const triggered = useRef(false)
 
-  const valor = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total)
-
+  const vehicle = [vehicleBrand, vehicleModel].filter(Boolean).join(" ")
   const trackingUrl = trackingToken ? `${appUrl}/acompanhar/${trackingToken}` : null
 
-  const message =
-    `Olá, ${customerName}! 👋\n\n` +
-    `Seu orçamento está pronto!\n\n` +
-    (orderNumber ? `📋 OS: ${orderNumber}\n` : "") +
-    `💰 Total: ${valor}\n` +
-    (trackingUrl ? `\nAcompanhe em tempo real:\n${trackingUrl}\n` : "") +
-    `\n— ${storeName}`
+  const message = buildMessage({ customerName, quoteNumber, subtotal, discount, total, items, validUntil, notes, vehicle, orderNumber, trackingUrl, storeName })
+
+  function openWhatsApp() {
+    if (!customerWhatsapp) return
+    const phone = cleanPhone(customerWhatsapp)
+    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
 
   useEffect(() => {
     if (!autoOpen || !customerWhatsapp || triggered.current) return
     triggered.current = true
-    window.open(
-      `https://wa.me/${cleanPhone(customerWhatsapp)}?text=${encodeURIComponent(message)}`,
-      "_blank",
-      "noopener,noreferrer"
-    )
+    openWhatsApp()
   }, [autoOpen, customerWhatsapp]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function handleSend() {
-    if (!customerWhatsapp) return
-    const phone = cleanPhone(customerWhatsapp)
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-    window.open(url, "_blank", "noopener,noreferrer")
-  }
 
   function handleDismiss() {
     if (osId) router.push(`/oficina/${osId}`)
@@ -93,7 +165,7 @@ export function WhatsAppActions({
               <Button
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-                onClick={handleSend}
+                onClick={openWhatsApp}
               >
                 <MessageCircle className="size-4" />
                 Enviar no WhatsApp
