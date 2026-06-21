@@ -171,6 +171,7 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
           storeName: osData.storeName,
           storeCnpj: osData.storeCnpj,
           storePhone: osData.storePhone,
+          storeAddress: osData.storeAddress,
         }
         onSuccess?.(receipt)
       }

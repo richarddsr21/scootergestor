@@ -29,6 +29,7 @@ export interface ReceiptProps {
   storeName: string
   storeCnpj: string | null
   storePhone: string | null
+  storeAddress?: string | null
 }
 
 function fmtNum(n: number) {
@@ -116,6 +117,7 @@ export function buildThermalReceipt(p: ReceiptProps): string {
     heavy,
     p.storeName ? p.storeName.toUpperCase() : null,
     p.storeCnpj ? `CNPJ: ${p.storeCnpj}` : null,
+    p.storeAddress ? p.storeAddress : null,
     p.storePhone ? `Tel: ${p.storePhone}` : null,
     light,
     `Data: ${dateLabel}   Hora: ${timeLabel}`,

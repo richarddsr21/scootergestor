@@ -49,7 +49,7 @@ export default async function VendaDetailPage({
       .eq("sale_id", id).eq("company_id", cid)
       .order("created_at"),
     supabase.from("company_settings")
-      .select("business_name, cnpj, phone, whatsapp")
+      .select("business_name, cnpj, phone, whatsapp, address, city, state")
       .eq("company_id", cid).maybeSingle(),
   ])
 
@@ -100,6 +100,7 @@ export default async function VendaDetailPage({
               storeName={settings?.business_name ?? ""}
               storeCnpj={settings?.cnpj ?? null}
               storePhone={settings?.whatsapp ?? settings?.phone ?? null}
+              storeAddress={[settings?.address, settings?.city, settings?.state].filter(Boolean).join(", ") || null}
             />
 
           )}

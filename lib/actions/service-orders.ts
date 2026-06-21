@@ -425,6 +425,7 @@ export interface OsPaymentData {
   storeName: string
   storeCnpj: string | null
   storePhone: string | null
+  storeAddress: string | null
   paymentMethods: {
     id: string
     name: string
@@ -457,7 +458,7 @@ export async function getOsPaymentDataAction(osId: string): Promise<OsPaymentDat
       .order("name"),
     ctx.supabase
       .from("company_settings")
-      .select("business_name, cnpj, whatsapp, phone")
+      .select("business_name, cnpj, whatsapp, phone, address, city, state")
       .eq("company_id", ctx.profile.company_id)
       .maybeSingle(),
   ])
@@ -485,6 +486,7 @@ export async function getOsPaymentDataAction(osId: string): Promise<OsPaymentDat
     storeName: (settings as any)?.business_name ?? "",
     storeCnpj: (settings as any)?.cnpj ?? null,
     storePhone: (settings as any)?.whatsapp ?? (settings as any)?.phone ?? null,
+    storeAddress: [(settings as any)?.address, (settings as any)?.city, (settings as any)?.state].filter(Boolean).join(", ") || null,
     paymentMethods: (pms ?? []) as OsPaymentData["paymentMethods"],
   }
 }
