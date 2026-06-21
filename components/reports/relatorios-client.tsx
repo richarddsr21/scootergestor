@@ -52,6 +52,7 @@ interface Props {
   totalPendente: number
   ticketMedio: number
   clientesUnicos: number
+  totalTaxasAbsorvidas: number
   chartData: { mes: string; os: number; vendas: number }[]
   methodData: MethodEntry[]
   topClients: { name: string; total: number; count: number }[]
@@ -107,6 +108,7 @@ export function RelatoriosClient({
   totalPendente,
   ticketMedio,
   clientesUnicos,
+  totalTaxasAbsorvidas,
   chartData,
   methodData,
   topClients,
@@ -351,6 +353,14 @@ export function RelatoriosClient({
       color: totalPendente > 0 ? "text-red-600" : "text-muted-foreground",
       bg: totalPendente > 0 ? "bg-red-500/10" : "bg-muted",
     },
+    ...(totalTaxasAbsorvidas > 0 ? [{
+      label: "Taxas Maquininha",
+      value: fmt(totalTaxasAbsorvidas),
+      sub: "custo sem juros absorvido",
+      icon: Activity,
+      color: "text-amber-600",
+      bg: "bg-amber-500/10",
+    }] : []),
   ]
 
   const topClientMax = topClients[0]?.total ?? 1

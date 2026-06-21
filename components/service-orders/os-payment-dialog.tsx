@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Loader2, Plus, Trash2, CreditCard } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -71,6 +72,7 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
   const [osData, setOsData] = React.useState<OsPaymentData | null>(null)
   const [loadingData, setLoadingData] = React.useState(false)
   const [isPending, startTransition] = React.useTransition()
+  const [absorbFees, setAbsorbFees] = React.useState(false)
 
   const entryIdRef = React.useRef(0)
   const [entries, setEntries] = React.useState<UIEntry[]>([])
@@ -91,10 +93,16 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
   const methods = osData?.paymentMethods.length ? osData.paymentMethods : FALLBACK_METHODS
   const total = osData?.total ?? 0
 
+  const totalFees = entries.reduce((s, e) => {
+    const method = methods.find((m) => m.id === e.methodId)
+    const base = parseFloat(e.amount) || 0
+    return s + (method ? (base * getFeePercent(method, e.installments)) / 100 : 0)
+  }, 0)
+
   const totalPaid = entries.reduce((s, e) => {
     const method = methods.find((m) => m.id === e.methodId)
     const base = parseFloat(e.amount) || 0
-    const fee = method ? (base * getFeePercent(method, e.installments)) / 100 : 0
+    const fee = absorbFees ? 0 : (method ? (base * getFeePercent(method, e.installments)) / 100 : 0)
     return s + base + fee
   }, 0)
 
@@ -126,7 +134,7 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
       const base = parseFloat(e.amount) || 0
       const feePercent = getFeePercent(method, e.installments)
       const fee_amount = (base * feePercent) / 100
-      return { method: method.type, amount: base + fee_amount, fee_amount, installments: e.installments }
+      return { method: method.type, amount: absorbFees ? base : base + fee_amount, fee_amount, fee_absorbed: absorbFees, installments: e.installments }
     })
 
     startTransition(async () => {
@@ -154,8 +162,8 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
           total: osData.total,
           payments: payload.map((e) => ({
             method: e.method,
-            amount: e.amount - e.fee_amount,
-            feeAmount: e.fee_amount,
+            amount: absorbFees ? e.amount : e.amount - e.fee_amount,
+            feeAmount: absorbFees ? 0 : e.fee_amount,
             installments: e.installments,
           })),
           customerName: osData.customerName,
@@ -276,9 +284,9 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
                       )}
                     </div>
 
-                    {feeAmt > 0 && (
+                    {feeAmt > 0 && !absorbFees && (
                       <p className="text-[10px] text-amber-600">
-                        Taxa {feePercent}% = {fmt(feeAmt)} · Total cobrado: {fmt(base + feeAmt)}
+                        Taxa {feePercent}% = {fmt(feeAmt)} · Cliente paga: {fmt(base + feeAmt)}
                       </p>
                     )}
                   </div>
@@ -298,6 +306,23 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
             </Button>
 
             <Separator />
+
+            {totalFees > 0 && (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <Switch checked={absorbFees} onCheckedChange={setAbsorbFees} className="scale-75 origin-left" />
+                    <span className="text-xs text-muted-foreground">Sem juros para o cliente</span>
+                  </label>
+                </div>
+                {!absorbFees && (
+                  <div className="flex justify-between text-sm text-amber-600">
+                    <span>Taxa(s) maquininha</span>
+                    <span>+{fmt(totalFees)}</span>
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">

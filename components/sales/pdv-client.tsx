@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
 import { Search, Plus, Trash2, ShoppingCart, CheckCircle, X, Hash, LockKeyhole } from "lucide-react"
 import { confirmSaleAction, type CartItem, type PaymentEntry } from "@/lib/actions/sales"
 import { openCashRegisterAction } from "@/lib/actions/cash"
@@ -153,6 +154,7 @@ export function PdvClient({
   const [entries, setEntries] = useState<UIPaymentEntry[]>([
     { id: entryIdRef.current++, methodType: methods[0]?.type ?? "dinheiro", amount: "", installments: 1 },
   ])
+  const [absorbFees, setAbsorbFees] = useState(false)
 
   const filtered = search.trim()
     ? products.filter(p =>
@@ -244,7 +246,7 @@ export function PdvClient({
   const totalEntered = isMulti ? entries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0) : total
   const remaining = isMulti ? total - totalEntered : 0
   const totalFees = entries.reduce((s, e) => s + entryFee(e), 0)
-  const clientTotal = total + totalFees
+  const clientTotal = absorbFees ? total : total + totalFees
 
   function handleConfirm() {
     if (cart.length === 0) { toast.error("Adicione pelo menos um produto"); return }
@@ -258,12 +260,17 @@ export function PdvClient({
       return
     }
 
-    const paymentData: PaymentEntry[] = entries.map(e => ({
-      method: e.methodType,
-      amount: entryBaseAmount(e),
-      fee_amount: entryFee(e),
-      installments: e.installments,
-    }))
+    const paymentData: PaymentEntry[] = entries.map(e => {
+      const base = entryBaseAmount(e)
+      const fee = entryFee(e)
+      return {
+        method: e.methodType,
+        amount: absorbFees ? base : base + fee,
+        fee_amount: fee,
+        fee_absorbed: absorbFees,
+        installments: e.installments,
+      }
+    })
 
     const cartWithChassis = cart.map(i => ({
       ...i,
@@ -502,8 +509,8 @@ export function PdvClient({
                       </div>
                     )}
 
-                    {/* Fee indicator */}
-                    {feePct > 0 && base > 0 && (
+                    {/* Fee indicator — hidden when absorbing fees */}
+                    {feePct > 0 && base > 0 && !absorbFees && (
                       <div className="flex justify-between text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded px-2 py-1">
                         <span>Taxa maquininha ({feePct}%)</span>
                         <span>+{fmt(feeAmt)}</span>
@@ -597,12 +604,22 @@ export function PdvClient({
               <span>{fmt(total)}</span>
             </div>
             {totalFees > 0 && (
-              <div className="flex justify-between text-sm text-amber-600">
-                <span>Taxa(s) maquininha</span>
-                <span>+{fmt(totalFees)}</span>
-              </div>
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <Switch checked={absorbFees} onCheckedChange={setAbsorbFees} className="scale-75 origin-left" />
+                    <span className="text-xs text-muted-foreground">Sem juros para o cliente</span>
+                  </label>
+                </div>
+                {!absorbFees && (
+                  <div className="flex justify-between text-sm text-amber-600">
+                    <span>Taxa(s) maquininha</span>
+                    <span>+{fmt(totalFees)}</span>
+                  </div>
+                )}
+                <Separator />
+              </>
             )}
-            {totalFees > 0 && <Separator />}
             <div className="flex justify-between font-bold text-lg">
               <span>Cliente paga</span>
               <span className="text-emerald-600">{fmt(clientTotal)}</span>

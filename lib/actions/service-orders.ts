@@ -408,6 +408,7 @@ export interface OsPaymentEntry {
   method: string
   amount: number
   fee_amount: number
+  fee_absorbed: boolean
   installments: number
 }
 
@@ -517,6 +518,7 @@ export async function payServiceOrderAction(
       method: e.method,
       amount: e.amount,
       fee_amount: e.fee_amount,
+      fee_absorbed: e.fee_absorbed,
       installments: e.installments,
       paid_at: now,
     }))

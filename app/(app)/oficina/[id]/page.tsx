@@ -15,7 +15,7 @@ import { OsChecklistSection } from "@/components/service-orders/os-checklist-sec
 import { OsNotesSection } from "@/components/service-orders/os-notes-section"
 import { OsPayButton } from "@/components/service-orders/os-pay-button"
 import { OsVehicleSection } from "@/components/service-orders/os-vehicle-section"
-import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS } from "@/lib/constants"
+import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS, PAYMENT_METHOD_LABELS } from "@/lib/constants"
 import { RevisionSection } from "@/components/revisions/revision-section"
 import { getCustomerRevisionAction } from "@/lib/actions/revisions"
 
@@ -50,6 +50,7 @@ export default async function OsDetailPage({
     { data: products },
     { data: existingQuote },
     { data: settings },
+    { data: payments },
   ] = await Promise.all([
     supabase.from("service_orders")
       .select("*, customers(id, name, phone, whatsapp), service_order_statuses(id, name, color), vehicles(type, brand, model), profiles(name)")
@@ -82,6 +83,10 @@ export default async function OsDetailPage({
       .select("business_name")
       .eq("company_id", cid)
       .maybeSingle(),
+    supabase.from("payments")
+      .select("method, amount, fee_amount, fee_absorbed, installments")
+      .eq("service_order_id", id).eq("company_id", cid)
+      .order("created_at"),
   ])
 
   if (!os) notFound()
@@ -223,6 +228,42 @@ export default async function OsDetailPage({
               <div className="pt-2">
                 <OsPayButton osId={id} alreadyPaid={os.payment_status === "pago"} />
               </div>
+
+              {(payments ?? []).length > 0 && (
+                <>
+                  <Separator />
+                  {(payments ?? []).map((p: any, i: number) => {
+                    const label = `${PAYMENT_METHOD_LABELS[p.method] ?? p.method}${p.installments > 1 ? ` (${p.installments}x)` : ""}`
+                    return (
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex justify-between text-muted-foreground text-xs">
+                          <span>{label}</span>
+                          <span>{fmt(p.amount)}</span>
+                        </div>
+                        {p.fee_amount > 0 && (
+                          <div className="flex justify-between text-amber-600 text-xs">
+                            <span>
+                              Taxa maquininha
+                              {p.fee_absorbed && <span className="ml-1 text-muted-foreground">(absorvida)</span>}
+                            </span>
+                            <span>+{fmt(p.fee_amount)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {(payments ?? []).some((p: any) => p.fee_amount > 0) && (
+                    <div className="flex justify-between text-xs font-medium pt-1 border-t">
+                      <span>
+                        {(payments ?? []).every((p: any) => p.fee_absorbed)
+                          ? "Custo total (loja)"
+                          : "Total pago pelo cliente"}
+                      </span>
+                      <span>{fmt((payments ?? []).reduce((s: number, p: any) => s + (p.amount ?? 0) + (p.fee_absorbed ? (p.fee_amount ?? 0) : 0), 0))}</span>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
 

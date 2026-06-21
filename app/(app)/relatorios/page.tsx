@@ -112,7 +112,7 @@ export default async function RelatoriosPage({
   ] = await Promise.all([
     supabase
       .from("payments")
-      .select("id, amount, method, paid_at, sale_id, service_order_id")
+      .select("id, amount, fee_amount, fee_absorbed, method, paid_at, sale_id, service_order_id")
       .eq("company_id", cid)
       .gte("paid_at", startDate)
       .order("paid_at"),
@@ -141,13 +141,15 @@ export default async function RelatoriosPage({
   const sales = salesData ?? []
 
   // ── Totals ──────────────────────────────────────────────────────────────────
-  const totalPago = payments.reduce((s, p) => s + p.amount, 0)
-  const totalVendasPago = payments.filter((p) => p.sale_id).reduce((s, p) => s + p.amount, 0)
-  const totalOsPago = payments.filter((p) => p.service_order_id).reduce((s, p) => s + p.amount, 0)
+  const trueAmount = (p: any) => (p.amount ?? 0) + ((p as any).fee_absorbed ? ((p as any).fee_amount ?? 0) : 0)
+  const totalPago = payments.reduce((s, p) => s + trueAmount(p), 0)
+  const totalVendasPago = payments.filter((p) => p.sale_id).reduce((s, p) => s + trueAmount(p), 0)
+  const totalOsPago = payments.filter((p) => p.service_order_id).reduce((s, p) => s + trueAmount(p), 0)
   const totalPendente = os
     .filter((o) => o.payment_status !== "pago")
     .reduce((s, o) => s + (o.total ?? 0), 0)
   const ticketMedio = payments.length > 0 ? totalPago / payments.length : 0
+  const totalTaxasAbsorvidas = payments.reduce((s, p) => s + ((p as any).fee_absorbed ? ((p as any).fee_amount ?? 0) : 0), 0)
 
   // ── Top clients ─────────────────────────────────────────────────────────────
   const osMap = new Map(os.map((o) => [o.id, o.customer_id]))
@@ -294,6 +296,7 @@ export default async function RelatoriosPage({
         totalPendente={totalPendente}
         ticketMedio={ticketMedio}
         clientesUnicos={clientesUnicos}
+        totalTaxasAbsorvidas={totalTaxasAbsorvidas}
         chartData={chartData}
         methodData={methodData}
         topClients={topClients}

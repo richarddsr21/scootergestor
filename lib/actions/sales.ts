@@ -30,6 +30,7 @@ export interface PaymentEntry {
   method: string
   amount: number
   fee_amount: number
+  fee_absorbed: boolean
   installments: number
 }
 
@@ -156,7 +157,7 @@ export async function confirmSaleAction(
   }))
 
   // Create payment records in parallel
-  await Promise.all(paymentEntries.map((entry) =>
+  const paymentResults = await Promise.all(paymentEntries.map((entry) =>
     ctx.supabase.from("payments").insert({
       company_id: ctx.profile.company_id,
       sale_id: sale.id,
@@ -164,10 +165,17 @@ export async function confirmSaleAction(
       method: entry.method,
       amount: entry.amount,
       fee_amount: entry.fee_amount,
+      fee_absorbed: entry.fee_absorbed,
       installments: entry.installments,
       paid_at: new Date().toISOString(),
     })
   ))
+
+  const paymentError = paymentResults.find(r => r.error)
+  if (paymentError?.error) {
+    await ctx.supabase.from("sales").delete().eq("id", sale.id)
+    return { error: "Erro ao registrar pagamento" }
+  }
 
   // Registra no caixa aberto (se houver) — falha silenciosa
   await insertCashMovementsForPayment(

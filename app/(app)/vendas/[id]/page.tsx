@@ -45,7 +45,7 @@ export default async function VendaDetailPage({
       .eq("sale_id", id).eq("company_id", cid)
       .order("created_at"),
     supabase.from("payments")
-      .select("method, amount, fee_amount, installments")
+      .select("method, amount, fee_amount, fee_absorbed, installments")
       .eq("sale_id", id).eq("company_id", cid)
       .order("created_at"),
     supabase.from("company_settings")
@@ -92,7 +92,7 @@ export default async function VendaDetailPage({
               payments={(payments ?? []).map((p: any) => ({
                 method: p.method,
                 amount: p.amount,
-                feeAmount: p.fee_amount ?? 0,
+                feeAmount: p.fee_absorbed ? 0 : (p.fee_amount ?? 0),
                 installments: p.installments,
               }))}
               customerName={(sale as any).customers?.name ?? "Cliente"}
@@ -178,7 +178,6 @@ export default async function VendaDetailPage({
                   <Separator />
                   {(payments ?? []).map((p: any, i: number) => {
                     const label = `${PAYMENT_METHOD_LABELS[p.method] ?? p.method}${p.installments > 1 ? ` (${p.installments}x)` : ""}`
-                    const clientAmt = (p.amount ?? 0) + (p.fee_amount ?? 0)
                     return (
                       <div key={i} className="space-y-0.5">
                         <div className="flex justify-between text-muted-foreground text-xs">
@@ -187,7 +186,10 @@ export default async function VendaDetailPage({
                         </div>
                         {p.fee_amount > 0 && (
                           <div className="flex justify-between text-amber-600 text-xs">
-                            <span>Taxa maquininha</span>
+                            <span>
+                              Taxa maquininha
+                              {p.fee_absorbed && <span className="ml-1 text-muted-foreground">(absorvida)</span>}
+                            </span>
                             <span>+{fmt(p.fee_amount)}</span>
                           </div>
                         )}
@@ -196,8 +198,12 @@ export default async function VendaDetailPage({
                   })}
                   {(payments ?? []).some((p: any) => p.fee_amount > 0) && (
                     <div className="flex justify-between text-xs font-medium pt-1 border-t">
-                      <span>Total pago pelo cliente</span>
-                      <span>{fmt((payments ?? []).reduce((s: number, p: any) => s + (p.amount ?? 0) + (p.fee_amount ?? 0), 0))}</span>
+                      <span>
+                        {(payments ?? []).every((p: any) => p.fee_absorbed)
+                          ? "Custo total (loja)"
+                          : "Total pago pelo cliente"}
+                      </span>
+                      <span>{fmt((payments ?? []).reduce((s: number, p: any) => s + (p.amount ?? 0) + (p.fee_absorbed ? (p.fee_amount ?? 0) : 0), 0))}</span>
                     </div>
                   )}
                 </>
