@@ -71,12 +71,12 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from("payments")
-      .select("amount")
+      .select("amount, fee_amount, fee_absorbed")
       .eq("company_id", cid)
       .gte("paid_at", todayStr),
     supabase
       .from("payments")
-      .select("amount")
+      .select("amount, fee_amount, fee_absorbed")
       .eq("company_id", cid)
       .gte("paid_at", monthStart),
     supabase
@@ -125,8 +125,9 @@ export default async function DashboardPage() {
       .limit(5),
   ])
 
-  const todayRevenue = (todayPayments ?? []).reduce((s, p) => s + p.amount, 0)
-  const monthRevenue = (monthPayments ?? []).reduce((s, p) => s + p.amount, 0)
+  const netAmount = (p: any) => (p.amount ?? 0) - ((p as any).fee_absorbed ? ((p as any).fee_amount ?? 0) : 0)
+  const todayRevenue = (todayPayments ?? []).reduce((s, p) => s + netAmount(p), 0)
+  const monthRevenue = (monthPayments ?? []).reduce((s, p) => s + netAmount(p), 0)
   const lowStockCount = (lowStockProducts ?? []).filter(
     (p) => p.stock_quantity <= p.minimum_stock
   ).length

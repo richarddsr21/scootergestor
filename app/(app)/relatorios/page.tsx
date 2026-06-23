@@ -141,7 +141,7 @@ export default async function RelatoriosPage({
   const sales = salesData ?? []
 
   // ── Totals ──────────────────────────────────────────────────────────────────
-  const trueAmount = (p: any) => (p.amount ?? 0) + ((p as any).fee_absorbed ? ((p as any).fee_amount ?? 0) : 0)
+  const trueAmount = (p: any) => (p.amount ?? 0) - ((p as any).fee_absorbed ? ((p as any).fee_amount ?? 0) : 0)
   const totalPago = payments.reduce((s, p) => s + trueAmount(p), 0)
   const totalVendasPago = payments.filter((p) => p.sale_id).reduce((s, p) => s + trueAmount(p), 0)
   const totalOsPago = payments.filter((p) => p.service_order_id).reduce((s, p) => s + trueAmount(p), 0)
