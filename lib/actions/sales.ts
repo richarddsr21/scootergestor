@@ -207,6 +207,47 @@ export async function cancelSaleAction(id: string): Promise<ActionState> {
   if (!sale) return { error: "Venda não encontrada" }
   if (sale.status === "cancelada") return { error: "Venda já cancelada" }
 
+  const { data: items } = await ctx.supabase
+    .from("sale_items")
+    .select("product_id, quantity")
+    .eq("sale_id", id)
+    .eq("company_id", ctx.profile.company_id)
+
+  // Reverte a baixa de estoque de cada item da venda
+  await Promise.all((items ?? []).map(async (item) => {
+    const { data: product } = await ctx.supabase
+      .from("products")
+      .select("stock_quantity")
+      .eq("id", item.product_id)
+      .eq("company_id", ctx.profile.company_id)
+      .single()
+
+    if (!product) return
+
+    const prev = product.stock_quantity
+    const next = prev + item.quantity
+
+    await ctx.supabase.from("stock_movements").insert({
+      company_id: ctx.profile.company_id,
+      product_id: item.product_id,
+      type: "entrada",
+      reason: "devolucao_cliente",
+      quantity: item.quantity,
+      previous_quantity: prev,
+      new_quantity: next,
+      reference_type: "sale",
+      reference_id: id,
+      user_id: ctx.user.id,
+      notes: "Estorno por cancelamento de venda",
+    })
+
+    await ctx.supabase
+      .from("products")
+      .update({ stock_quantity: next })
+      .eq("id", item.product_id)
+      .eq("company_id", ctx.profile.company_id)
+  }))
+
   const { error } = await ctx.supabase
     .from("sales")
     .update({ status: "cancelada" })
@@ -217,5 +258,7 @@ export async function cancelSaleAction(id: string): Promise<ActionState> {
 
   revalidatePath("/vendas")
   revalidatePath(`/vendas/${id}`)
-  return { success: "Venda cancelada" }
+  revalidatePath("/produtos")
+  revalidatePath("/estoque")
+  return { success: "Venda cancelada e estoque estornado" }
 }
