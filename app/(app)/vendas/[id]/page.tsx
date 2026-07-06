@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft } from "lucide-react"
 import { CancelSaleButton } from "@/components/sales/cancel-sale-button"
+import { DeleteSaleButton } from "@/components/sales/delete-sale-button"
 import { SaleReceiptButtons } from "@/components/sales/whatsapp-receipt-button"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
 import { RevisionSection } from "@/components/revisions/revision-section"
@@ -105,6 +106,7 @@ export default async function VendaDetailPage({
 
           )}
           {sale.status !== "cancelada" && <CancelSaleButton id={id} />}
+          <DeleteSaleButton id={id} />
         </div>
       </div>
 
