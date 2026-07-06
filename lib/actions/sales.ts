@@ -119,7 +119,8 @@ export async function confirmSaleAction(
           autonomy: null,
           warranty_until: null,
           notes: null,
-        })
+          source_sale_id: sale.id,
+        } as any)
       }
     }
 
