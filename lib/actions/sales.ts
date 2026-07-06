@@ -194,28 +194,12 @@ export async function confirmSaleAction(
   return { success: "Venda registrada!", saleId: sale.id }
 }
 
-export async function cancelSaleAction(id: string): Promise<ActionState> {
-  const ctx = await getCtx()
-  if (!ctx) return { error: "Não autenticado" }
-
-  const { data: sale } = await ctx.supabase
-    .from("sales")
-    .select("id, status")
-    .eq("id", id)
-    .eq("company_id", ctx.profile.company_id)
-    .single()
-
-  if (!sale) return { error: "Venda não encontrada" }
-  if (sale.status === "cancelada") return { error: "Venda já cancelada" }
-
-  const { data: items } = await ctx.supabase
-    .from("sale_items")
-    .select("product_id, quantity")
-    .eq("sale_id", id)
-    .eq("company_id", ctx.profile.company_id)
-
-  // Reverte a baixa de estoque de cada item da venda
-  await Promise.all((items ?? []).map(async (item) => {
+async function revertStockForItems(
+  ctx: NonNullable<Awaited<ReturnType<typeof getCtx>>>,
+  saleId: string,
+  items: { product_id: string; quantity: number }[]
+) {
+  await Promise.all(items.map(async (item) => {
     const { data: product } = await ctx.supabase
       .from("products")
       .select("stock_quantity")
@@ -237,7 +221,7 @@ export async function cancelSaleAction(id: string): Promise<ActionState> {
       previous_quantity: prev,
       new_quantity: next,
       reference_type: "sale",
-      reference_id: id,
+      reference_id: saleId,
       user_id: ctx.user.id,
       notes: "Estorno por cancelamento de venda",
     })
@@ -248,6 +232,30 @@ export async function cancelSaleAction(id: string): Promise<ActionState> {
       .eq("id", item.product_id)
       .eq("company_id", ctx.profile.company_id)
   }))
+}
+
+export async function cancelSaleAction(id: string): Promise<ActionState> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+
+  const { data: sale } = await ctx.supabase
+    .from("sales")
+    .select("id, status")
+    .eq("id", id)
+    .eq("company_id", ctx.profile.company_id)
+    .single()
+
+  if (!sale) return { error: "Venda não encontrada" }
+  if (sale.status === "cancelada") return { error: "Venda já cancelada" }
+
+  const { data: items } = await ctx.supabase
+    .from("sale_items")
+    .select("product_id, quantity")
+    .eq("sale_id", id)
+    .eq("company_id", ctx.profile.company_id)
+
+  // Reverte a baixa de estoque de cada item da venda
+  await revertStockForItems(ctx, id, items ?? [])
 
   const { error } = await ctx.supabase
     .from("sales")
@@ -262,4 +270,79 @@ export async function cancelSaleAction(id: string): Promise<ActionState> {
   revalidatePath("/produtos")
   revalidatePath("/estoque")
   return { success: "Venda cancelada e estoque estornado" }
+}
+
+export async function deleteSaleAction(id: string): Promise<ActionState> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+
+  const { data: sale } = await ctx.supabase
+    .from("sales")
+    .select("id, status")
+    .eq("id", id)
+    .eq("company_id", ctx.profile.company_id)
+    .single()
+
+  if (!sale) return { error: "Venda não encontrada" }
+
+  const { data: items } = await ctx.supabase
+    .from("sale_items")
+    .select("product_id, quantity")
+    .eq("sale_id", id)
+    .eq("company_id", ctx.profile.company_id)
+
+  if (sale.status !== "cancelada") {
+    await revertStockForItems(ctx, id, items ?? [])
+  }
+
+  await ctx.supabase
+    .from("cash_movements")
+    .delete()
+    .eq("source_type", "sale")
+    .eq("source_id", id)
+    .eq("company_id", ctx.profile.company_id)
+
+  await ctx.supabase
+    .from("stock_movements")
+    .delete()
+    .eq("reference_type", "sale")
+    .eq("reference_id", id)
+    .eq("company_id", ctx.profile.company_id)
+
+  const { data: vehicles } = await ctx.supabase
+    .from("vehicles")
+    .select("id")
+    .eq("source_sale_id" as any, id)
+    .eq("company_id", ctx.profile.company_id)
+
+  await Promise.all((vehicles ?? []).map(async (vehicle) => {
+    const { count } = await ctx.supabase
+      .from("service_orders")
+      .select("*", { count: "exact", head: true })
+      .eq("vehicle_id", vehicle.id)
+      .eq("company_id", ctx.profile.company_id)
+
+    if (!count) {
+      await ctx.supabase
+        .from("vehicles")
+        .delete()
+        .eq("id", vehicle.id)
+        .eq("company_id", ctx.profile.company_id)
+    }
+  }))
+
+  const { error } = await ctx.supabase
+    .from("sales")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", ctx.profile.company_id)
+
+  if (error) return { error: "Erro ao excluir venda" }
+
+  revalidatePath("/vendas")
+  revalidatePath("/produtos")
+  revalidatePath("/estoque")
+  revalidatePath("/dashboard")
+  revalidatePath("/relatorios")
+  return { success: "Venda excluída" }
 }
