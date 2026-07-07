@@ -218,10 +218,16 @@ Layout novo, assimétrico (não grade uniforme):
      Mono 32px, sparkline dos últimos 7 dias embutido no próprio tile
      (recharts `AreaChart` mini, sem eixos), glow teal permanente
      (não só hover, é o tile mais importante).
-   - 3 tiles 1×1 ao redor: **OS Abertas hoje**, **Estoque Baixo**,
-     **Clientes Atendidos no Mês** (novo — clientes distintos com
-     venda ou OS criada no mês corrente), cada um com sparkline 7 dias
-     e contador animado (`useCountUp` via `framer-motion`).
+   - 3 tiles 1×1 ao redor: **OS Abertas hoje** (com sparkline 7 dias,
+     baseado em `service_orders.created_at`), **Estoque Baixo** (sem
+     sparkline — é uma foto do estoque atual, não existe histórico
+     diário no banco; sparkline aqui seria dado inventado, então o
+     tile mostra só o número + contador), **Clientes Atendidos no Mês**
+     (novo — clientes distintos com venda ou OS criada no mês corrente;
+     sem sparkline pelo mesmo motivo de custo/benefício — exigiria
+     dedup diário de cliente, complexidade desproporcional pro valor).
+     Todos os 4 tiles têm contador animado (`useCountUp` via
+     `framer-motion`).
 2. **Linha 2:** gráfico grande de faturamento — `LineChart` recharts,
    últimos 30 dias, linha teal + área com gradiente teal→transparente,
    grid só horizontal, tooltip com `surface-2` (8 colunas) + "OS
