@@ -466,11 +466,16 @@ export interface Database {
           total: number
           valid_until: string | null
           notes: string | null
+          vehicle_brand: string | null
+          vehicle_model: string | null
           created_at: string
           approved_at: string | null
           rejected_at: string | null
         }
-        Insert: Omit<Database["public"]["Tables"]["quotes"]["Row"], "id" | "created_at">
+        Insert: Omit<Database["public"]["Tables"]["quotes"]["Row"], "id" | "created_at" | "vehicle_brand" | "vehicle_model"> & {
+          vehicle_brand?: string | null
+          vehicle_model?: string | null
+        }
         Update: Partial<Database["public"]["Tables"]["quotes"]["Insert"]>
 
         Relationships: never[]

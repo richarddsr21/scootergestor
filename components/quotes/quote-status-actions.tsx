@@ -1,6 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { CheckCircle, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,13 +12,17 @@ interface Props {
 }
 
 export function QuoteStatusActions({ quoteId }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   function handleApprove() {
     startTransition(async () => {
       const result = await approveQuoteAction(quoteId)
       if (result.error) toast.error(result.error)
-      else toast.success(result.success ?? "Aprovado")
+      else {
+        toast.success(result.success ?? "Aprovado")
+        if (result.osId) router.push(`/oficina/${result.osId}`)
+      }
     })
   }
 

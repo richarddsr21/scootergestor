@@ -173,9 +173,18 @@ export async function deleteQuoteItemAction(
   return { success: "Item removido" }
 }
 
-export async function approveQuoteAction(quoteId: string): Promise<ActionState> {
+export async function approveQuoteAction(quoteId: string): Promise<ActionState & { osId?: string }> {
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
+
+  const { data: quote } = await ctx.supabase
+    .from("quotes")
+    .select("id, customer_id, vehicle_brand, vehicle_model, service_order_id, quote_number")
+    .eq("id", quoteId)
+    .eq("company_id", ctx.profile.company_id)
+    .single()
+
+  if (!quote) return { error: "Orçamento não encontrado" }
 
   const now = new Date().toISOString()
 
@@ -187,8 +196,81 @@ export async function approveQuoteAction(quoteId: string): Promise<ActionState> 
 
   if (error) return { error: "Erro ao aprovar orçamento" }
 
+  // Orçamento já vinculado a uma OS existente — só leva o usuário até ela
+  if (quote.service_order_id) {
+    revalidatePath(`/oficina/orcamentos/${quoteId}`)
+    return { success: "Orçamento aprovado", osId: quote.service_order_id }
+  }
+
+  // Cria a OS automaticamente a partir do orçamento aprovado
+  const { data: quoteItems } = await ctx.supabase
+    .from("quote_items")
+    .select("item_type, description, product_id, quantity, unit_price, total")
+    .eq("quote_id", quoteId)
+
+  const items = quoteItems ?? []
+  const laborTotal = items.filter((i) => i.item_type === "labor").reduce((s, i) => s + i.total, 0)
+  const partsTotal = items.filter((i) => i.item_type !== "labor").reduce((s, i) => s + i.total, 0)
+
+  const [{ data: defaultStatus }, { count }] = await Promise.all([
+    ctx.supabase
+      .from("service_order_statuses")
+      .select("id")
+      .eq("company_id", ctx.profile.company_id)
+      .eq("is_default", true)
+      .maybeSingle(),
+    ctx.supabase
+      .from("service_orders").select("*", { count: "exact", head: true })
+      .eq("company_id", ctx.profile.company_id),
+  ])
+
+  const orderNumber = `OS-${String((count ?? 0) + 1).padStart(5, "0")}`
+
+  const { data: os, error: osError } = await ctx.supabase
+    .from("service_orders")
+    .insert({
+      company_id: ctx.profile.company_id,
+      order_number: orderNumber,
+      customer_id: quote.customer_id,
+      created_by: ctx.user.id,
+      status_id: defaultStatus?.id ?? null,
+      priority: "normal",
+      reported_problem: `Gerada a partir do orçamento ${quote.quote_number}`,
+      vehicle_brand: quote.vehicle_brand ?? null,
+      vehicle_model: quote.vehicle_model ?? null,
+      labor_total: laborTotal,
+      parts_total: partsTotal,
+      total: laborTotal + partsTotal,
+    } as any)
+    .select("id")
+    .single()
+
+  if (osError || !os) {
+    revalidatePath(`/oficina/orcamentos/${quoteId}`)
+    return { success: "Orçamento aprovado, mas houve um erro ao gerar a OS automaticamente" }
+  }
+
+  if (items.length > 0) {
+    await ctx.supabase.from("service_order_items").insert(
+      items.map((item) => ({
+        company_id: ctx.profile.company_id,
+        service_order_id: os.id,
+        product_id: item.product_id ?? null,
+        item_type: item.item_type === "scooter" ? "part" : item.item_type,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        cost_price: 0,
+        total: item.total,
+      }))
+    )
+  }
+
+  await ctx.supabase.from("quotes").update({ service_order_id: os.id }).eq("id", quoteId)
+
   revalidatePath(`/oficina/orcamentos/${quoteId}`)
-  return { success: "Orçamento aprovado" }
+  revalidatePath("/oficina")
+  return { success: "Orçamento aprovado e OS criada", osId: os.id }
 }
 
 export async function rejectQuoteAction(quoteId: string): Promise<ActionState> {
