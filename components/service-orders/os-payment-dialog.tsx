@@ -73,6 +73,7 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
   const [loadingData, setLoadingData] = React.useState(false)
   const [isPending, startTransition] = React.useTransition()
   const [absorbFees, setAbsorbFees] = React.useState(false)
+  const [discountInput, setDiscountInput] = React.useState("0")
 
   const entryIdRef = React.useRef(0)
   const [entries, setEntries] = React.useState<UIEntry[]>([])
@@ -80,6 +81,7 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
   React.useEffect(() => {
     if (!open) return
     setLoadingData(true)
+    setDiscountInput("0")
     getOsPaymentDataAction(osId).then((data) => {
       setOsData(data)
       const methods = data?.paymentMethods.length ? data.paymentMethods : FALLBACK_METHODS
@@ -91,7 +93,9 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
   }, [open, osId])
 
   const methods = osData?.paymentMethods.length ? osData.paymentMethods : FALLBACK_METHODS
-  const total = osData?.total ?? 0
+  const rawTotal = osData?.total ?? 0
+  const discount = Math.max(0, Math.min(parseFloat(discountInput) || 0, rawTotal))
+  const total = rawTotal - discount
 
   const totalFees = entries.reduce((s, e) => {
     const method = methods.find((m) => m.id === e.methodId)
@@ -138,7 +142,7 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
     })
 
     startTransition(async () => {
-      const result = await payServiceOrderAction(osId, payload)
+      const result = await payServiceOrderAction(osId, payload, discount)
       if (result.error) {
         toast.error(result.error)
         return
@@ -158,8 +162,8 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
             total: item.total,
           })),
           subtotal: osData.subtotal,
-          discount: osData.discount,
-          total: osData.total,
+          discount,
+          total,
           payments: payload.map((e) => ({
             method: e.method,
             amount: absorbFees ? e.amount : e.amount - e.fee_amount,
@@ -206,9 +210,32 @@ export function OsPaymentDialog({ osId, open, onOpenChange, onSuccess }: Props) 
 
         {!loadingData && !alreadyPaid && osData && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
-              <span className="text-sm text-muted-foreground">Total da OS</span>
-              <span className="text-lg font-bold text-emerald-600">{fmt(total)}</span>
+            <div className="rounded-lg bg-muted/50 px-4 py-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total da OS</span>
+                <span className={`text-lg font-bold text-emerald-600 ${discount > 0 ? "line-through text-sm text-muted-foreground" : ""}`}>
+                  {fmt(rawTotal)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="os_discount" className="text-xs text-muted-foreground shrink-0">Desconto (R$)</Label>
+                <Input
+                  id="os_discount"
+                  type="number"
+                  min={0}
+                  max={rawTotal}
+                  step="0.01"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  className="h-8 text-xs w-28 text-right"
+                />
+              </div>
+              {discount > 0 && (
+                <div className="flex items-center justify-between border-t pt-2">
+                  <span className="text-sm text-muted-foreground">Total com desconto</span>
+                  <span className="text-lg font-bold text-emerald-600">{fmt(total)}</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">

@@ -322,6 +322,7 @@ export interface Database {
           vehicle_model: string | null
           vehicle_chassis: string | null
           mileage_km: number | null
+          payment_terms: string | null
           tracking_token: string
           created_at: string
           updated_at: string
@@ -343,6 +344,7 @@ export interface Database {
           vehicle_model?: string | null
           vehicle_chassis?: string | null
           mileage_km?: number | null
+          payment_terms?: string | null
         }
         Update: Partial<Database["public"]["Tables"]["service_orders"]["Insert"]>
 

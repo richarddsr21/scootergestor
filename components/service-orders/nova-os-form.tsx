@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createServiceOrderAction } from "@/lib/actions/service-orders"
-import { OS_PRIORITY_LABELS } from "@/lib/constants"
+import { OS_PRIORITY_LABELS, PAYMENT_TERMS_LABELS } from "@/lib/constants"
 import { QuickCustomerDialog } from "@/components/customers/quick-customer-dialog"
 
 interface Customer { id: string; name: string }
@@ -31,7 +31,7 @@ export function NovaOsForm({ customers: initialCustomers, technicians, defaultCu
   useEffect(() => {
     if (state.success) {
       toast.success(state.success)
-      if ((state as any).id) router.push(`/oficina/${(state as any).id}`)
+      if ((state as any).id) router.push(`/oficina/${(state as any).id}?criada=1`)
     }
     if (state.error) toast.error(state.error)
   }, [state])
@@ -87,6 +87,19 @@ export function NovaOsForm({ customers: initialCustomers, technicians, defaultCu
         <div className="space-y-1.5">
           <Label htmlFor="expected_delivery_at">Previsão de entrega</Label>
           <Input id="expected_delivery_at" name="expected_delivery_at" type="date" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="payment_terms">Condições de pagamento</Label>
+          <Select name="payment_terms" defaultValue="none">
+            <SelectTrigger id="payment_terms"><SelectValue placeholder="Não definida" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Não definida</SelectItem>
+              {Object.entries(PAYMENT_TERMS_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="sm:col-span-2 border-t pt-4">

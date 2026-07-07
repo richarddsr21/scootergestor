@@ -28,6 +28,7 @@ const createOsSchema = z.object({
   vehicle_model: z.string().optional(),
   vehicle_chassis: z.string().optional(),
   mileage_km: z.coerce.number().int().nonnegative().optional(),
+  payment_terms: z.string().optional(),
 })
 
 export async function createServiceOrderAction(
@@ -55,7 +56,7 @@ export async function createServiceOrderAction(
 
   const orderNumber = `OS-${String((count ?? 0) + 1).padStart(5, "0")}`
 
-  const { customer_id, vehicle_id, technician_id, expected_delivery_at, internal_notes, vehicle_brand, vehicle_model, vehicle_chassis, mileage_km, ...rest } = parsed.data
+  const { customer_id, vehicle_id, technician_id, expected_delivery_at, internal_notes, vehicle_brand, vehicle_model, vehicle_chassis, mileage_km, payment_terms, ...rest } = parsed.data
 
   const { data: os, error } = await ctx.supabase
     .from("service_orders")
@@ -74,6 +75,7 @@ export async function createServiceOrderAction(
       vehicle_model: vehicle_model?.trim() || null,
       vehicle_chassis: vehicle_chassis?.trim() || null,
       mileage_km: mileage_km ?? null,
+      payment_terms: payment_terms && payment_terms !== "none" ? payment_terms : null,
     })
     .select("id")
     .single()
@@ -493,7 +495,8 @@ export async function getOsPaymentDataAction(osId: string): Promise<OsPaymentDat
 
 export async function payServiceOrderAction(
   osId: string,
-  entries: OsPaymentEntry[]
+  entries: OsPaymentEntry[],
+  discount: number = 0
 ): Promise<ActionState> {
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
@@ -508,6 +511,9 @@ export async function payServiceOrderAction(
 
   if (!os) return { error: "OS não encontrada" }
   if (os.payment_status === "pago") return { error: "OS já está paga" }
+
+  const safeDiscount = Math.max(0, Math.min(discount, os.total))
+  const finalTotal = os.total - safeDiscount
 
   const now = new Date().toISOString()
   const totalPaid = entries.reduce((s, e) => s + e.amount, 0)
@@ -543,9 +549,21 @@ export async function payServiceOrderAction(
     ).catch(() => {})
   }
 
-  const payment_status = totalPaid >= os.total ? "pago" : "parcial"
+  const payment_status = totalPaid >= finalTotal ? "pago" : "parcial"
 
-  const updates: { payment_status: string; status_id?: string; completed_at?: string; delivered_at?: string } = { payment_status }
+  const updates: {
+    payment_status: string
+    discount?: number
+    total?: number
+    status_id?: string
+    completed_at?: string
+    delivered_at?: string
+  } = { payment_status }
+
+  if (safeDiscount > 0) {
+    updates.discount = safeDiscount
+    updates.total = finalTotal
+  }
 
   if (payment_status === "pago") {
     const { data: entregueStatus } = await ctx.supabase
@@ -665,4 +683,29 @@ export async function exportOsAction(osId: string): Promise<OsExportData | null>
     payments: (payments ?? []) as OsExportData["payments"],
     companyName: (settings as any)?.business_name ?? "ScooterGestor",
   }
+}
+
+export async function deleteServiceOrderAction(id: string): Promise<ActionState> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+
+  const { data: os } = await ctx.supabase
+    .from("service_orders")
+    .select("id, payment_status")
+    .eq("id", id).eq("company_id", ctx.profile.company_id)
+    .single()
+
+  if (!os) return { error: "OS não encontrada" }
+  if (os.payment_status !== "pendente") {
+    return { error: "OS com pagamento registrado não pode ser excluída" }
+  }
+
+  const { error } = await ctx.supabase
+    .from("service_orders").delete()
+    .eq("id", id).eq("company_id", ctx.profile.company_id)
+
+  if (error) return { error: "Erro ao excluir OS" }
+
+  revalidatePath("/oficina")
+  return { success: "OS excluída" }
 }

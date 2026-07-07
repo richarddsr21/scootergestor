@@ -48,6 +48,12 @@ export const OS_PRIORITY_LABELS: Record<string, string> = {
   urgente: "Urgente",
 }
 
+export const PAYMENT_TERMS_LABELS: Record<string, string> = {
+  a_vista: "À vista",
+  parcelado: "Parcelado",
+  a_combinar: "A combinar",
+}
+
 export const OS_PRIORITY_COLORS: Record<string, string> = {
   baixa: "bg-slate-100 text-slate-700",
   normal: "bg-blue-100 text-blue-700",
