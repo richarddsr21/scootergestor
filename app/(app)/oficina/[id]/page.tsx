@@ -9,15 +9,18 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, User, Wrench, FileText } from "lucide-react"
 import { OsExportButton } from "@/components/service-orders/os-export-button"
+import { DeleteOsButton } from "@/components/service-orders/delete-os-button"
 import { OsStatusSelector } from "@/components/service-orders/os-status-selector"
 import { OsItemsSection } from "@/components/service-orders/os-items-section"
 import { OsChecklistSection } from "@/components/service-orders/os-checklist-section"
 import { OsNotesSection } from "@/components/service-orders/os-notes-section"
 import { OsPayButton } from "@/components/service-orders/os-pay-button"
 import { OsVehicleSection } from "@/components/service-orders/os-vehicle-section"
-import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS, PAYMENT_METHOD_LABELS } from "@/lib/constants"
+import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS, PAYMENT_METHOD_LABELS, PAYMENT_TERMS_LABELS, DEFAULT_MESSAGE_TEMPLATES } from "@/lib/constants"
 import { RevisionSection } from "@/components/revisions/revision-section"
 import { getCustomerRevisionAction } from "@/lib/actions/revisions"
+import { OsWhatsAppBanner } from "@/components/service-orders/os-whatsapp-banner"
+import { renderMessageTemplate } from "@/lib/whatsapp-template"
 
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
@@ -29,10 +32,13 @@ function fmtDate(d: string | null | undefined) {
 
 export default async function OsDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ criada?: string }>
 }) {
   const { id } = await params
+  const { criada } = await searchParams
   const user = await getAuthUser()
   if (!user) redirect("/login")
 
@@ -80,7 +86,7 @@ export default async function OsDetailPage({
       .limit(1)
       .maybeSingle(),
     supabase.from("company_settings")
-      .select("business_name")
+      .select("business_name, whatsapp, phone")
       .eq("company_id", cid)
       .maybeSingle(),
     supabase.from("payments")
@@ -96,6 +102,34 @@ export default async function OsDetailPage({
   const status = (os as any).service_order_statuses
   const vehicle = (os as any).vehicles
   const technician = (os as any).profiles
+
+  let whatsappMessage: string | null = null
+  if (criada === "1" && customer) {
+    const { data: template } = await supabase
+      .from("message_templates")
+      .select("content")
+      .eq("company_id", cid)
+      .eq("trigger_key", "os_aberta")
+      .eq("status", "active")
+      .maybeSingle()
+
+    const content = template?.content
+      ?? DEFAULT_MESSAGE_TEMPLATES.find((t) => t.trigger_key === "os_aberta")!.content
+
+    const vehicleLabel = [(os as any).vehicle_brand, (os as any).vehicle_model].filter(Boolean).join(" ")
+
+    whatsappMessage = renderMessageTemplate(content, {
+      cliente: customer.name ?? "Cliente",
+      numero_os: os.order_number,
+      modelo: vehicleLabel || "—",
+      valor: fmt(os.total ?? 0),
+      status: status?.name ?? "Aberta",
+      nome_loja: (settings as any)?.business_name ?? "ScooterGestor",
+      telefone_loja: (settings as any)?.whatsapp ?? (settings as any)?.phone ?? "",
+      data_previsao: fmtDate(os.expected_delivery_at),
+      tecnico: technician?.name ?? "A definir",
+    })
+  }
 
   return (
     <div className="space-y-6">
@@ -132,8 +166,18 @@ export default async function OsDetailPage({
               </Link>
             </Button>
           )}
+          <DeleteOsButton id={id} />
         </div>
       </div>
+
+      {whatsappMessage && (
+        <OsWhatsAppBanner
+          customerName={customer?.name ?? "Cliente"}
+          customerWhatsapp={customer?.whatsapp ?? customer?.phone ?? null}
+          orderNumber={os.order_number}
+          message={whatsappMessage}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4">
@@ -182,6 +226,12 @@ export default async function OsDetailPage({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Técnico</span>
                   <span>{technician.name}</span>
+                </div>
+              )}
+              {(os as any).payment_terms && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Condições de pagamento</span>
+                  <span>{PAYMENT_TERMS_LABELS[(os as any).payment_terms] ?? (os as any).payment_terms}</span>
                 </div>
               )}
             </CardContent>
