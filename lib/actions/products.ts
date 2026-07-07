@@ -79,6 +79,46 @@ export async function saveProductAction(
   return { success: "Produto criado", id: created.id }
 }
 
+export async function quickCreateProductAction(data: {
+  name: string
+  sale_price: number
+  stock_quantity: number
+}): Promise<{ error?: string; id?: string }> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+
+  if (!data.name || data.name.trim().length < 2) return { error: "Nome é obrigatório" }
+
+  const { data: created, error } = await ctx.supabase
+    .from("products")
+    .insert({
+      company_id: ctx.profile.company_id,
+      name: data.name.trim(),
+      sale_price: data.sale_price,
+      stock_quantity: data.stock_quantity,
+      cost_price: 0,
+      minimum_stock: 0,
+      unit: "un",
+      product_type: "other",
+      requires_chassis: false,
+      category_id: null,
+      supplier_id: null,
+      image_url: null,
+      sku: null,
+      barcode: null,
+      brand: null,
+      model: null,
+      description: null,
+    })
+    .select("id")
+    .single()
+
+  if (error) return { error: "Erro ao cadastrar produto" }
+
+  revalidatePath("/produtos")
+  return { id: created.id }
+}
+
 export async function deleteProductAction(id: string): Promise<ActionState> {
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }

@@ -17,6 +17,7 @@ import { confirmSaleAction, type CartItem, type PaymentEntry } from "@/lib/actio
 import { openCashRegisterAction } from "@/lib/actions/cash"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
 import { QuickCustomerDialog } from "@/components/customers/quick-customer-dialog"
+import { QuickProductDialog } from "@/components/products/quick-product-dialog"
 
 const CASH_INIT = { error: undefined, success: undefined }
 
@@ -119,7 +120,7 @@ const FALLBACK_METHODS: PaymentMethod[] = Object.entries(PAYMENT_METHOD_LABELS)
   .map(([type, name]) => ({ id: type, name, type, fee_percent: 0, installment_fees: null }))
 
 export function PdvClient({
-  products,
+  products: initialProducts,
   customers: initialCustomers,
   paymentMethods,
   caixaAberto = true,
@@ -133,6 +134,7 @@ export function PdvClient({
   const [isPending, startTransition] = useTransition()
   const [cart, setCart] = useState<CartItem[]>([])
   const [search, setSearch] = useState("")
+  const [products, setProducts] = useState<Product[]>(initialProducts)
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
   const [customerId, setCustomerId] = useState<string>("none")
   const [notes, setNotes] = useState("")
@@ -140,6 +142,11 @@ export function PdvClient({
   function handleCustomerCreated(customer: { id: string; name: string }) {
     setCustomers(prev => [...prev, { ...customer, phone: null }].sort((a, b) => a.name.localeCompare(b.name)))
     setCustomerId(customer.id)
+  }
+
+  function handleProductCreated(product: Product) {
+    setProducts(prev => [product, ...prev])
+    addToCart(product)
   }
 
   // Discount
@@ -295,14 +302,17 @@ export function PdvClient({
             <CardTitle className="text-sm">Buscar produtos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Nome ou SKU do produto..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Nome ou SKU do produto..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
+              <QuickProductDialog onCreated={handleProductCreated} />
             </div>
             {filtered.length > 0 && (
               <div className="rounded-md border divide-y">
