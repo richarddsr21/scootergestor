@@ -25,7 +25,7 @@ export function CancelSaleButton({ id }: { id: string }) {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Cancelar venda?</AlertDialogTitle>
-          <AlertDialogDescription>Esta ação marcará a venda como cancelada. O estoque não será revertido automaticamente.</AlertDialogDescription>
+          <AlertDialogDescription>Esta ação marcará a venda como cancelada e devolverá os itens ao estoque automaticamente.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Voltar</AlertDialogCancel>

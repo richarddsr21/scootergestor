@@ -35,22 +35,28 @@ const PERIODO_LABELS: Record<string, string> = {
   all: "Todo período",
 }
 
+function fmtBr(iso: string) {
+  const [y, m, d] = iso.split("-")
+  return `${d}/${m}/${y}`
+}
+
 export default async function RelatoriosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periodo?: string }>
+  searchParams: Promise<{ periodo?: string; de?: string; ate?: string }>
 }) {
-  const { periodo: periodoParam } = await searchParams
+  const { periodo: periodoParam, de: deParam, ate: ateParam } = await searchParams
+
+  const customRange = Boolean(deParam)
 
   // Handle legacy "3", "6", "12" values from old URLs
   const rawPeriodo = periodoParam ?? "6m"
-  const periodo =
-    rawPeriodo === "3" ? "3m" :
-    rawPeriodo === "6" ? "6m" :
-    rawPeriodo === "12" ? "12m" :
-    rawPeriodo
-
-  const periodoLabel = PERIODO_LABELS[periodo] ?? "Período selecionado"
+  const periodo = customRange
+    ? "custom"
+    : rawPeriodo === "3" ? "3m" :
+      rawPeriodo === "6" ? "6m" :
+      rawPeriodo === "12" ? "12m" :
+      rawPeriodo
 
   const user = await getAuthUser()
   if (!user) redirect("/login")
@@ -64,10 +70,26 @@ export default async function RelatoriosPage({
 
   // ── Compute date range ────────────────────────────────────────────────────────
   let startDate: string
+  let endDate: string = now.toISOString().slice(0, 10)
   let chartUnit: "day" | "month"
   let chartCount: number // days or months; 0 = dynamic (all)
+  let anchor = now
 
-  if (periodo === "hoje") {
+  if (customRange) {
+    startDate = deParam!
+    endDate = ateParam || endDate
+    anchor = new Date(`${endDate}T12:00:00`)
+    const diffDays = Math.round(
+      (new Date(`${endDate}T12:00:00`).getTime() - new Date(`${startDate}T12:00:00`).getTime()) / 86_400_000
+    ) + 1
+    if (diffDays <= 62) {
+      chartUnit = "day"
+      chartCount = Math.max(diffDays, 1)
+    } else {
+      chartUnit = "month"
+      chartCount = 0
+    }
+  } else if (periodo === "hoje") {
     startDate = now.toISOString().slice(0, 10)
     chartUnit = "day"
     chartCount = 1
@@ -102,6 +124,12 @@ export default async function RelatoriosPage({
     chartCount = 6
   }
 
+  const periodoLabel = customRange
+    ? `${fmtBr(startDate)} a ${fmtBr(endDate)}`
+    : PERIODO_LABELS[periodo] ?? "Período selecionado"
+
+  const endDateTime = `${endDate}T23:59:59.999`
+
   const [
     { data: paymentsRaw },
     { data: osAll },
@@ -115,23 +143,27 @@ export default async function RelatoriosPage({
       .select("id, amount, fee_amount, fee_absorbed, method, paid_at, sale_id, service_order_id")
       .eq("company_id", cid)
       .gte("paid_at", startDate)
+      .lte("paid_at", endDateTime)
       .order("paid_at"),
     supabase
       .from("service_orders")
       .select("id, total, payment_status, completed_at, created_at, customer_id")
       .eq("company_id", cid)
-      .gte("created_at", startDate),
+      .gte("created_at", startDate)
+      .lte("created_at", endDateTime),
     supabase
       .from("sales")
       .select("id, total, created_at, customer_id")
       .eq("company_id", cid)
       .eq("status", "concluida")
-      .gte("created_at", startDate),
+      .gte("created_at", startDate)
+      .lte("created_at", endDateTime),
     supabase
       .from("sale_items")
       .select("quantity, total, products(name)")
       .eq("company_id", cid)
-      .gte("created_at", startDate),
+      .gte("created_at", startDate)
+      .lte("created_at", endDateTime),
     supabase.from("customers").select("id, name").eq("company_id", cid),
     supabase.from("company_settings").select("business_name").eq("company_id", cid).maybeSingle(),
   ])
@@ -181,7 +213,7 @@ export default async function RelatoriosPage({
   if (chartUnit === "day") {
     const dayMap: Record<string, { mes: string; os: number; vendas: number }> = {}
     for (let i = 0; i < chartCount; i++) {
-      const d = new Date(now)
+      const d = new Date(anchor)
       d.setDate(d.getDate() - (chartCount - 1) + i)
       const key = d.toISOString().slice(0, 10)
       dayMap[key] = {
@@ -202,11 +234,11 @@ export default async function RelatoriosPage({
 
     if (chartCount > 0) {
       for (let i = 0; i < chartCount; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - chartCount + 1 + i, 1)
+        const d = new Date(anchor.getFullYear(), anchor.getMonth() - chartCount + 1 + i, 1)
         monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
       }
     } else {
-      // "all": build months from existing payment data
+      // "all"/custom range sem limite fixo: monta os meses a partir dos pagamentos existentes
       const allKeys = new Set<string>()
       for (const p of payments) {
         const k = (p.paid_at ?? "").slice(0, 7)
@@ -214,7 +246,7 @@ export default async function RelatoriosPage({
       }
       if (allKeys.size === 0) {
         for (let i = 2; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1)
           monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
         }
       } else {
@@ -289,6 +321,8 @@ export default async function RelatoriosPage({
       <RelatoriosClient
         periodo={periodo}
         periodoLabel={periodoLabel}
+        de={customRange ? startDate : ""}
+        ate={customRange ? endDate : ""}
         companyName={(settings as any)?.business_name ?? "ScooterGestor"}
         totalPago={totalPago}
         totalVendasPago={totalVendasPago}

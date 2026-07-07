@@ -115,10 +115,10 @@ export function buildThermalReceipt(p: ReceiptProps): string {
     heavy,
     center("CUPOM NAO FISCAL"),
     heavy,
-    p.storeName ? p.storeName.toUpperCase() : null,
-    p.storeCnpj ? `CNPJ: ${p.storeCnpj}` : null,
-    p.storeAddress ? p.storeAddress : null,
-    p.storePhone ? `Tel: ${p.storePhone}` : null,
+    p.storeName ? center(p.storeName.toUpperCase()) : null,
+    p.storeCnpj ? center(`CNPJ: ${p.storeCnpj}`) : null,
+    p.storeAddress ? center(p.storeAddress) : null,
+    p.storePhone ? center(`Tel: ${p.storePhone}`) : null,
     light,
     `Data: ${dateLabel}   Hora: ${timeLabel}`,
     `Venda: ${p.saleNumber}`,
@@ -159,7 +159,7 @@ export function buildPrintHTML(receipt: string): string {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Courier New', Courier, monospace; font-size: 11px; padding: 4mm; }
-    pre { white-space: pre; line-height: 1.4; }
+    pre { white-space: pre; line-height: 1.4; width: fit-content; }
   </style>
 </head>
 <body>

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams, useRouter } from "next/navigation"
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, PieChart, Pie, Cell,
@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -45,6 +46,8 @@ interface MethodEntry {
 interface Props {
   periodo: string
   periodoLabel: string
+  de: string
+  ate: string
   companyName: string
   totalPago: number
   totalVendasPago: number
@@ -101,6 +104,8 @@ function ChartTooltip({ active, payload, label }: any) {
 export function RelatoriosClient({
   periodo,
   periodoLabel,
+  de,
+  ate,
   companyName,
   totalPago,
   totalVendasPago,
@@ -117,13 +122,28 @@ export function RelatoriosClient({
 }: Props) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [loadingPdf, setLoadingPdf] = useState(false)
   const [loadingXlsx, setLoadingXlsx] = useState(false)
+  const [deInput, setDeInput] = useState(de)
+  const [ateInput, setAteInput] = useState(ate)
 
   function buildUrl(p: string) {
     const params = new URLSearchParams(searchParams.toString())
     params.set("periodo", p)
+    params.delete("de")
+    params.delete("ate")
     return `${pathname}?${params.toString()}`
+  }
+
+  function applyCustomRange() {
+    if (!deInput) return
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("periodo")
+    params.set("de", deInput)
+    if (ateInput) params.set("ate", ateInput)
+    else params.delete("ate")
+    router.push(`${pathname}?${params.toString()}`)
   }
 
   async function handleDownloadPdf() {
@@ -371,7 +391,7 @@ export function RelatoriosClient({
 
       {/* Period filter + download buttons */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {PERIODOS.map((p) => (
             <Button
               key={p.value}
@@ -382,6 +402,30 @@ export function RelatoriosClient({
               <Link href={buildUrl(p.value)}>{p.label}</Link>
             </Button>
           ))}
+          <Separator orientation="vertical" className="h-6 mx-1" />
+          <Input
+            type="date"
+            value={deInput}
+            onChange={(e) => setDeInput(e.target.value)}
+            className="h-8 w-[9.5rem]"
+            aria-label="Data inicial"
+          />
+          <span className="text-xs text-muted-foreground">até</span>
+          <Input
+            type="date"
+            value={ateInput}
+            onChange={(e) => setAteInput(e.target.value)}
+            className="h-8 w-[9.5rem]"
+            aria-label="Data final"
+          />
+          <Button
+            size="sm"
+            variant={periodo === "custom" ? "default" : "outline"}
+            disabled={!deInput}
+            onClick={applyCustomRange}
+          >
+            Filtrar
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
