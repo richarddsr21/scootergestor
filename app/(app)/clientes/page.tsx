@@ -29,10 +29,10 @@ function fmtDate(d: string) {
 }
 
 const AVATAR_COLORS = [
-  "bg-brand-teal-dim",
-  "bg-brand-violet-dim",
-  "bg-brand-amber-dim",
-  "bg-brand-coral-dim",
+  "bg-avatar-teal",
+  "bg-avatar-violet",
+  "bg-avatar-amber",
+  "bg-avatar-coral",
 ]
 
 function avatarColor(name: string) {
