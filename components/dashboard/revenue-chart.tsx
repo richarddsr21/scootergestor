@@ -23,7 +23,7 @@ function fmtDateShort(iso: string) {
 export function RevenueChart({ data }: RevenueChartProps) {
   return (
     <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" debounce={200}>
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="revenue-gradient" x1="0" y1="0" x2="0" y2="1">
