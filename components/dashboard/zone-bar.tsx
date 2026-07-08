@@ -19,6 +19,8 @@ export function ZoneBar({
   label,
   className,
 }: ZoneBarProps) {
+  // Sentido inverso do Gauge: aqui um ratio MAIOR é pior (ex.: fração do
+  // catálogo com estoque baixo) — no Gauge, um value MAIOR é melhor (faturamento).
   const ratio = max > 0 ? Math.min(Math.max(value / max, 0), 1) : 0
   const zone = ratio >= criticalAt ? "critical" : ratio >= warningAt ? "warning" : "optimal"
   const zoneBarClass = {
@@ -27,9 +29,9 @@ export function ZoneBar({
     critical: "bg-zone-critical",
   }[zone]
   const zoneTextClass = {
-    optimal: "text-zone-optimal",
-    warning: "text-zone-warning",
-    critical: "text-zone-critical",
+    optimal: "text-zone-optimal-text",
+    warning: "text-zone-warning-text",
+    critical: "text-zone-critical-text",
   }[zone]
 
   return (

@@ -52,10 +52,10 @@ export function Gauge({ value, target, format = "integer", label, size = 220, cl
     value >= target ? "ótimo" : value >= target * 0.7 ? "atenção" : "crítico"
   const zoneClass =
     value >= target
-      ? "text-zone-optimal"
+      ? "text-zone-optimal-text"
       : value >= target * 0.7
-        ? "text-zone-warning"
-        : "text-zone-critical"
+        ? "text-zone-warning-text"
+        : "text-zone-critical-text"
 
   const needleDeg = -90 + animatedPct * 180
   const criticalLen = warningBoundary * 100

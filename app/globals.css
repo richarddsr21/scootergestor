@@ -102,6 +102,15 @@ body.app-theme {
   --zone-warning:  var(--brand-amber-dim);
   --zone-critical: var(--brand-coral-dim);
 
+  /* Variantes "text-safe": brand-teal-dim/-amber-dim/-coral-dim servem de
+     fundo de botão (contraste calculado contra texto branco em cima) e não
+     passam em 4.5:1 quando usados como TEXTO sobre um fundo claro. Estas
+     3 são só pra texto (número do Gauge, label do ZoneBar, cor do
+     StatusPill/badge de zona). */
+  --zone-optimal-text:  #008171;
+  --zone-warning-text:  #9B6800;
+  --zone-critical-text: #D92E2E;
+
   --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
   --font-display: var(--font-manrope), "Manrope", sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, monospace;
@@ -161,6 +170,11 @@ html.dark body.app-theme {
   --zone-warning:  var(--brand-amber);
   --zone-critical: var(--brand-coral);
 
+  /* No dark mode os tokens de zona já passam 4.5:1 como texto — reusa. */
+  --zone-optimal-text:  var(--brand-teal);
+  --zone-warning-text:  var(--brand-amber);
+  --zone-critical-text: var(--brand-coral);
+
   --border: rgba(255, 255, 255, 0.06);
   --input: rgba(255, 255, 255, 0.10);
   --ring: var(--brand-teal);
@@ -205,6 +219,9 @@ html.dark body.app-theme {
   --color-zone-optimal:     var(--zone-optimal);
   --color-zone-warning:     var(--zone-warning);
   --color-zone-critical:    var(--zone-critical);
+  --color-zone-optimal-text:  var(--zone-optimal-text);
+  --color-zone-warning-text:  var(--zone-warning-text);
+  --color-zone-critical-text: var(--zone-critical-text);
 
   /* Semantic */
   --color-background: var(--background);
@@ -396,15 +413,15 @@ body.app-theme [data-slot="dialog-content"] {
    Token-driven: nunca usar bg-emerald-100 etc. direto num componente. */
 .badge-zone-optimal {
   background-color: color-mix(in oklab, var(--zone-optimal) 15%, transparent);
-  color: var(--zone-optimal);
+  color: var(--zone-optimal-text);
 }
 .badge-zone-warning {
   background-color: color-mix(in oklab, var(--zone-warning) 15%, transparent);
-  color: var(--zone-warning);
+  color: var(--zone-warning-text);
 }
 .badge-zone-critical {
   background-color: color-mix(in oklab, var(--zone-critical) 15%, transparent);
-  color: var(--zone-critical);
+  color: var(--zone-critical-text);
 }
 .badge-zone-neutral {
   background-color: var(--muted);

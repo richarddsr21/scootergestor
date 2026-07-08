@@ -203,7 +203,6 @@ export default async function DashboardPage() {
   ])
 
   const revenue30d = bucketByDay(thirtyDayPayments ?? [], (p: any) => p.paid_at, (p) => netAmount(p), 30, now)
-  const revenue7d = revenue30d.slice(-7)
   const osCreated7d = bucketByDay(sevenDayOsCreated ?? [], (o: any) => o.created_at, () => 1, 7, now)
 
   const sortedRecentOs = [...(recentOs ?? [])]
