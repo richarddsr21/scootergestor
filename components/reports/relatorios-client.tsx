@@ -493,7 +493,7 @@ export function RelatoriosClient({
               Nenhum pagamento registrado no período
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={280} debounce={200}>
               <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/60" />
                 <XAxis
@@ -549,7 +549,7 @@ export function RelatoriosClient({
             <div className="grid gap-6 md:grid-cols-2 items-center">
               {/* Donut */}
               <div className="relative mx-auto w-full max-w-[260px]">
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={220} debounce={200}>
                   <PieChart>
                     <Pie
                       data={methodData}
