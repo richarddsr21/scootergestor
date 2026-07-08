@@ -1,17 +1,22 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { ArrowUpRight } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer } from "recharts"
 import { cn } from "@/lib/utils"
 import { useCountUp } from "./use-count-up"
-import type { LucideIcon } from "lucide-react"
+
+const FORMATTERS: Record<"integer" | "currency", (n: number) => string> = {
+  integer: (n) => String(Math.round(n)),
+  currency: (n) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n),
+}
 
 interface KpiTileProps {
   title: string
   numericValue: number
-  format?: (n: number) => string
-  icon: LucideIcon
+  format?: "integer" | "currency"
+  icon: React.ReactNode
   href?: string
   sparkline?: number[]
   size?: "hero" | "default"
@@ -21,8 +26,8 @@ interface KpiTileProps {
 export function KpiTile({
   title,
   numericValue,
-  format = (n) => String(Math.round(n)),
-  icon: Icon,
+  format = "integer",
+  icon,
   href,
   sparkline,
   size = "default",
@@ -47,11 +52,16 @@ export function KpiTile({
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {title}
         </p>
-        <Icon className={cn("shrink-0 text-brand-teal", isHero ? "size-6" : "size-5")} aria-hidden="true" />
+        <span
+          className={cn("shrink-0 text-brand-teal [&>svg]:size-full", isHero ? "size-6" : "size-5")}
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
       </div>
 
       <p className={cn("font-mono font-medium tabular-nums text-foreground", isHero ? "text-4xl" : "text-2xl")}>
-        {format(animated)}
+        {FORMATTERS[format](animated)}
       </p>
 
       {chartData.length > 0 && (

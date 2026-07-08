@@ -214,28 +214,28 @@ export default async function DashboardPage() {
           className="col-span-2 row-span-2"
           title="Faturamento do Mês"
           numericValue={monthRevenue}
-          format={fmt}
-          icon={DollarSign}
+          format="currency"
+          icon={<DollarSign />}
           href="/relatorios"
           sparkline={revenue7d.map((d) => d.total)}
         />
         <KpiTile
           title="OS Abertas"
           numericValue={openOsCount ?? 0}
-          icon={Wrench}
+          icon={<Wrench />}
           href="/oficina"
           sparkline={osCreated7d.map((d) => d.total)}
         />
         <KpiTile
           title="Estoque Baixo"
           numericValue={lowStockCount}
-          icon={AlertTriangle}
+          icon={<AlertTriangle />}
           href="/estoque"
         />
         <KpiTile
           title="Clientes Atendidos no Mês"
           numericValue={monthCustomerIds.size}
-          icon={Users}
+          icon={<Users />}
           href="/clientes"
         />
       </div>
