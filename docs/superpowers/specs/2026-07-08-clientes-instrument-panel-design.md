@@ -29,14 +29,16 @@ Os 3 `MetricCard` (Total de clientes / Novos este mês / Com scooter) são subst
 
 ### 1.2 Avatar de iniciais (lista)
 
-Troca o array `AVATAR_COLORS` (8 cores Tailwind: blue/violet/emerald/amber/rose/cyan/indigo/teal) por 4 cores de marca, usando as variantes `-dim` — são as variantes "text-safe pra fundo com texto branco" documentadas em `app/globals.css:105-109` (garante contraste ≥4.5:1 do texto branco das iniciais nos dois temas):
+Troca o array `AVATAR_COLORS` (8 cores Tailwind: blue/violet/emerald/amber/rose/cyan/indigo/teal) por 4 cores de marca.
+
+> **Atualizado pós-implementação:** o texto original desta seção mandava usar as variantes `-dim` (`bg-brand-teal-dim` etc.), assumindo que eram "text-safe pra fundo com texto branco" (comentário em `app/globals.css:105-109`). A review da Task 2 verificou com cálculo de luminância WCAG que isso é falso pra este uso — nenhuma das 4 `-dim` passa 4.5:1 contra texto branco em ambos os temas (ex.: `coral-dim` só 3.75:1, `teal-dim` só 3.28:1). A correção, aprovada pelo usuário: 4 tokens novos e dedicados em `app/globals.css` (`--avatar-teal: #007364`, `--avatar-violet: #7239F4`, `--avatar-amber: #8D5B00`, `--avatar-coral: #CE0000`), cada um verificado em ≥5.8:1. É isso que foi implementado (commits `d40978c`, `d590c2b`):
 
 ```tsx
 const AVATAR_COLORS = [
-  "bg-brand-teal-dim",
-  "bg-brand-violet-dim",
-  "bg-brand-amber-dim",
-  "bg-brand-coral-dim",
+  "bg-avatar-teal",
+  "bg-avatar-violet",
+  "bg-avatar-amber",
+  "bg-avatar-coral",
 ]
 ```
 
@@ -82,18 +84,20 @@ Os 4 `<Card>` com ícone em caixa de cor hardcoded (`bg-primary/10`, `bg-violet-
 
 ### 2.2 Avatar grande do header
 
-Troca `AVATAR_COLORS` (gradientes `from-X-500 to-X-600` hardcoded) por gradiente com tokens de marca:
+Troca `AVATAR_COLORS` (gradientes `from-X-500 to-X-600` hardcoded) pelos mesmos tokens dedicados de avatar da seção 1.2.
+
+> **Atualizado pós-implementação:** pela mesma razão da seção 1.2 (tokens `-dim` não passam 4.5:1), o gradiente de 2 tons foi substituído por fundo sólido com os tokens `bg-avatar-*` — sem segundo stop `-dim`, já que ele falhava. A classe `bg-gradient-to-br` foi removida da `className` do avatar (sem `from-`/`to-`, ficaria sem efeito):
 
 ```tsx
 const AVATAR_COLORS = [
-  "from-brand-teal to-brand-teal-dim",
-  "from-brand-violet to-brand-violet-dim",
-  "from-brand-amber to-brand-amber-dim",
-  "from-brand-coral to-brand-coral-dim",
+  "bg-avatar-teal",
+  "bg-avatar-violet",
+  "bg-avatar-amber",
+  "bg-avatar-coral",
 ]
 ```
 
-Mesma função `avatarColor(name)`, só troca o array. Mantém `bg-gradient-to-br ... text-white`.
+Mesma função `avatarColor(name)`, só troca o array. `className` do avatar perde `bg-gradient-to-br` e mantém `text-white`.
 
 ### 2.3 Prioridade no histórico de OS → `StatusPill`
 
