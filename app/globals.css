@@ -319,3 +319,37 @@ body {
 .badge-slate   { @apply bg-slate-100   text-slate-700   dark:bg-slate-500/20  dark:text-slate-300; }
 .badge-orange  { @apply bg-orange-100  text-orange-800  dark:bg-orange-500/20 dark:text-orange-300; }
 .badge-teal    { @apply bg-teal-100    text-teal-800    dark:bg-teal-500/20   dark:text-teal-300; }
+
+/* ── App logado — comportamento (Teal Glow System) ──────
+   Escopado a body.app-theme; nunca toca components/ui/*.tsx
+   pra não vazar pro resto do site (public/auth/admin). ── */
+body.app-theme [data-slot="button"].bg-primary {
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              filter 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.app-theme [data-slot="button"].bg-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px var(--brand-teal-glow);
+}
+body.app-theme [data-slot="button"].bg-primary:active {
+  transform: translateY(0);
+  filter: brightness(1);
+}
+
+body.app-theme [data-slot="card"] {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 4px 24px rgba(0, 0, 0, 0.3);
+  transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.app-theme [data-slot="card"]:hover {
+  border-color: var(--brand-teal);
+}
+
+body.app-theme [data-slot="dialog-overlay"] {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+body.app-theme [data-slot="dialog-content"] {
+  border-radius: 16px;
+}
