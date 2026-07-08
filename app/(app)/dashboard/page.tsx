@@ -3,15 +3,18 @@ import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { PageHeader } from "@/components/layout/page-header"
-import { MetricCard } from "@/components/shared/metric-card"
 import { EmptyState } from "@/components/shared/empty-state"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { KpiTile } from "@/components/dashboard/kpi-tile"
+import { MetricChip } from "@/components/dashboard/metric-chip"
+import { RevenueChart } from "@/components/dashboard/revenue-chart"
+import { bucketByDay } from "@/lib/dashboard-charts"
 import {
   DollarSign, ShoppingCart, Wrench, AlertTriangle,
-  TrendingUp, Users, CheckCircle, Clock, ArrowRight,
+  Users, CheckCircle, Clock, ArrowRight,
   Plus, CreditCard, Banknote, Smartphone,
 } from "lucide-react"
 
@@ -29,6 +32,8 @@ const METHOD_ICONS: Record<string, typeof CreditCard> = {
   dinheiro: Banknote,
   cash: Banknote,
 }
+
+const PRIORITY_ORDER: Record<string, number> = { urgente: 0, alta: 1, normal: 2, baixa: 3 }
 
 function methodIcon(method: string) {
   return METHOD_ICONS[method] ?? CreditCard
@@ -56,6 +61,12 @@ export default async function DashboardPage() {
   const now = new Date()
   const todayStr = now.toISOString().slice(0, 10)
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+  const thirtyDaysAgo = new Date(now)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().slice(0, 10)
+  const sevenDaysAgo = new Date(now)
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10)
 
   const [
     { data: todayPayments },
@@ -68,6 +79,10 @@ export default async function DashboardPage() {
     { count: completedTodayCount },
     { data: recentOs },
     { data: recentSales },
+    { data: thirtyDayPayments },
+    { data: sevenDayOsCreated },
+    { data: monthSales },
+    { data: monthOs },
   ] = await Promise.all([
     supabase
       .from("payments")
@@ -115,7 +130,7 @@ export default async function DashboardPage() {
       .eq("company_id", cid)
       .is("delivered_at", null)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(8),
     supabase
       .from("sales")
       .select("id, sale_number, total, created_at, customers(name)")
@@ -123,6 +138,29 @@ export default async function DashboardPage() {
       .eq("status", "concluida")
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("payments")
+      .select("amount, fee_amount, fee_absorbed, paid_at")
+      .eq("company_id", cid)
+      .gte("paid_at", thirtyDaysAgoStr),
+    supabase
+      .from("service_orders")
+      .select("created_at")
+      .eq("company_id", cid)
+      .gte("created_at", sevenDaysAgoStr),
+    supabase
+      .from("sales")
+      .select("customer_id")
+      .eq("company_id", cid)
+      .eq("status", "concluida")
+      .gte("created_at", monthStart)
+      .not("customer_id", "is", null),
+    supabase
+      .from("service_orders")
+      .select("customer_id")
+      .eq("company_id", cid)
+      .gte("created_at", monthStart)
+      .not("customer_id", "is", null),
   ])
 
   const netAmount = (p: any) => (p.amount ?? 0) - ((p as any).fee_absorbed ? ((p as any).fee_amount ?? 0) : 0)
@@ -132,79 +170,18 @@ export default async function DashboardPage() {
     (p) => p.stock_quantity <= p.minimum_stock
   ).length
 
-  const cards = [
-    {
-      title: "Faturado Hoje",
-      value: fmt(todayRevenue),
-      icon: DollarSign,
-      colorClass: "text-emerald-600",
-      bgClass: "bg-emerald-50 dark:bg-emerald-950/30",
-      trend: todayRevenue > 0 ? "pagamentos recebidos" : undefined,
-      trendPositive: todayRevenue > 0,
-      href: "/relatorios",
-    },
-    {
-      title: "Faturado no Mês",
-      value: fmt(monthRevenue),
-      icon: TrendingUp,
-      colorClass: "text-blue-600",
-      bgClass: "bg-blue-50 dark:bg-blue-950/30",
-      href: "/relatorios",
-    },
-    {
-      title: "OS Abertas",
-      value: String(openOsCount ?? 0),
-      icon: Wrench,
-      colorClass: "text-orange-600",
-      bgClass: "bg-orange-50 dark:bg-orange-950/30",
-      trend: openOsCount ? "em andamento" : undefined,
-      href: "/oficina",
-    },
-    {
-      title: "Estoque Baixo",
-      value: String(lowStockCount),
-      icon: AlertTriangle,
-      colorClass: "text-red-600",
-      bgClass: "bg-red-50 dark:bg-red-950/30",
-      trend: lowStockCount ? "itens críticos" : undefined,
-      trendPositive: false,
-      href: "/estoque",
-    },
-    {
-      title: "Total de Clientes",
-      value: String(customerCount ?? 0),
-      icon: Users,
-      colorClass: "text-sky-600",
-      bgClass: "bg-sky-50 dark:bg-sky-950/30",
-      href: "/clientes",
-    },
-    {
-      title: "Aguard. Aprovação",
-      value: String(waitingApprovalCount ?? 0),
-      icon: Clock,
-      colorClass: "text-amber-600",
-      bgClass: "bg-amber-50 dark:bg-amber-950/30",
-      trend: waitingApprovalCount ? "requer atenção" : undefined,
-      trendPositive: false,
-      href: "/oficina",
-    },
-    {
-      title: "OS Concluídas Hoje",
-      value: String(completedTodayCount ?? 0),
-      icon: CheckCircle,
-      colorClass: "text-teal-600",
-      bgClass: "bg-teal-50 dark:bg-teal-950/30",
-      href: "/oficina",
-    },
-    {
-      title: "Pgtos Recebidos Hoje",
-      value: String((todayPayments ?? []).length),
-      icon: CreditCard,
-      colorClass: "text-violet-600",
-      bgClass: "bg-violet-50 dark:bg-violet-950/30",
-      href: "/relatorios",
-    },
-  ]
+  const monthCustomerIds = new Set<string>([
+    ...(monthSales ?? []).map((s: any) => s.customer_id as string),
+    ...(monthOs ?? []).map((o: any) => o.customer_id as string),
+  ])
+
+  const revenue30d = bucketByDay(thirtyDayPayments ?? [], (p: any) => p.paid_at, (p) => netAmount(p), 30, now)
+  const revenue7d = revenue30d.slice(-7)
+  const osCreated7d = bucketByDay(sevenDayOsCreated ?? [], (o: any) => o.created_at, () => 1, 7, now)
+
+  const sortedRecentOs = [...(recentOs ?? [])]
+    .sort((a: any, b: any) => (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2))
+    .slice(0, 6)
 
   return (
     <div className="space-y-6">
@@ -230,26 +207,51 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {cards.map((c) => (
-          <MetricCard
-            key={c.title}
-            title={c.title}
-            value={c.value}
-            icon={c.icon}
-            colorClass={c.colorClass}
-            bgClass={c.bgClass}
-            trend={c.trend}
-            trendPositive={c.trendPositive}
-            href={c.href}
-          />
-        ))}
+      {/* Bento hero: 4 KPIs principais */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:grid-rows-2">
+        <KpiTile
+          size="hero"
+          className="col-span-2 row-span-2"
+          title="Faturamento do Mês"
+          numericValue={monthRevenue}
+          format={fmt}
+          icon={DollarSign}
+          href="/relatorios"
+          sparkline={revenue7d.map((d) => d.total)}
+        />
+        <KpiTile
+          title="OS Abertas"
+          numericValue={openOsCount ?? 0}
+          icon={Wrench}
+          href="/oficina"
+          sparkline={osCreated7d.map((d) => d.total)}
+        />
+        <KpiTile
+          title="Estoque Baixo"
+          numericValue={lowStockCount}
+          icon={AlertTriangle}
+          href="/estoque"
+        />
+        <KpiTile
+          title="Clientes Atendidos no Mês"
+          numericValue={monthCustomerIds.size}
+          icon={Users}
+          href="/clientes"
+        />
       </div>
 
-      {/* Recent OS + Last Sales */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/60 shadow-xs">
+      {/* Gráfico de faturamento + OS recentes priorizadas */}
+      <div className="grid gap-4 lg:grid-cols-12">
+        <Card className="border-border/60 shadow-xs lg:col-span-8">
+          <CardHeader className="pb-2 pt-5 px-5">
+            <CardTitle className="text-base font-semibold font-display">Faturamento — últimos 30 dias</CardTitle>
+          </CardHeader>
+          <CardContent className="px-2 pb-4">
+            <RevenueChart data={revenue30d} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 shadow-xs lg:col-span-4">
           <CardHeader className="flex flex-row items-center justify-between pb-3 pt-5 px-5">
             <CardTitle className="text-base font-semibold font-display">OS recentes</CardTitle>
             <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground h-7 px-2 hover:text-primary">
@@ -259,16 +261,16 @@ export default async function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent className="p-0 pb-2">
-            {(!recentOs || recentOs.length === 0) ? (
+            {sortedRecentOs.length === 0 ? (
               <EmptyState icon={Wrench} title="Nenhuma OS aberta" description="Crie uma para acompanhar diagnóstico e manutenção." className="py-10" />
             ) : (
               <div className="divide-y divide-border/60">
-                {recentOs.map((os: any) => (
+                {sortedRecentOs.map((os: any) => (
                   <Link key={os.id} href={`/oficina/${os.id}`}
                     className="flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-medium">{os.order_number}</span>
+                        <span className="font-mono text-sm font-medium">{os.order_number}</span>
                         {os.service_order_statuses && (
                           <StatusBadge label={os.service_order_statuses.name} color={os.service_order_statuses.color} />
                         )}
@@ -284,7 +286,10 @@ export default async function DashboardPage() {
             )}
           </CardContent>
         </Card>
+      </div>
 
+      {/* Últimas vendas + métricas secundárias compactas */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-border/60 shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-3 pt-5 px-5">
             <CardTitle className="text-base font-semibold font-display">Últimas vendas</CardTitle>
@@ -303,17 +308,29 @@ export default async function DashboardPage() {
                   <Link key={s.id} href={`/vendas/${s.id}`}
                     className="flex items-center justify-between px-5 py-3 hover:bg-muted/40 transition-colors">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium">{s.sale_number}</p>
+                      <p className="font-mono text-sm font-medium">{s.sale_number}</p>
                       <p className="text-xs text-muted-foreground truncate">{s.customers?.name ?? "Venda sem cliente"}</p>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <p className="text-sm font-semibold text-emerald-600 tabular-nums">{fmt(s.total)}</p>
+                      <p className="font-mono text-sm font-semibold text-emerald-600 tabular-nums">{fmt(s.total)}</p>
                       <p className="text-xs text-muted-foreground tabular-nums">{fmtDate(s.created_at)}</p>
                     </div>
                   </Link>
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 shadow-xs">
+          <CardHeader className="pb-3 pt-5 px-5">
+            <CardTitle className="text-base font-semibold font-display">Resumo do dia</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-2 px-5 pb-5 sm:grid-cols-2">
+            <MetricChip label="Faturado hoje" value={fmt(todayRevenue)} icon={DollarSign} href="/relatorios" tone={todayRevenue > 0 ? "positive" : "default"} />
+            <MetricChip label="Total de clientes" value={String(customerCount ?? 0)} icon={Users} href="/clientes" />
+            <MetricChip label="Aguard. aprovação" value={String(waitingApprovalCount ?? 0)} icon={Clock} href="/oficina" tone={waitingApprovalCount ? "negative" : "default"} />
+            <MetricChip label="OS concluídas hoje" value={String(completedTodayCount ?? 0)} icon={CheckCircle} href="/oficina" tone="positive" />
           </CardContent>
         </Card>
       </div>
@@ -370,7 +387,7 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-emerald-600 tabular-nums">
+                      <p className="font-mono text-sm font-semibold text-emerald-600 tabular-nums">
                         {fmt(p.amount)}
                       </p>
                       <p className="text-[10px] text-muted-foreground tabular-nums">
