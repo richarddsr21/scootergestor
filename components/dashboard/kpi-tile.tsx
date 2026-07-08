@@ -31,12 +31,13 @@ export function KpiTile({
   const animated = useCountUp(numericValue)
   const isHero = size === "hero"
   const chartData = (sparkline ?? []).map((value, i) => ({ i, value }))
+  const gradientId = `spark-${title.replace(/\W+/g, "-")}`
 
   const content = (
     <div
       className={cn(
         "group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_4px_24px_rgba(0,0,0,0.3)] transition-all duration-200",
-        !isHero && "min-h-[140px] hover:border-brand-teal hover:-translate-y-0.5 hover:shadow-[0_0_20px_var(--brand-teal-glow)]",
+        !isHero && "min-h-[140px] hover:border-brand-teal hover:-translate-y-0.5 hover:shadow-[0_0_20px_var(--brand-teal-glow)] motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         isHero && "min-h-[220px] rounded-2xl p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_4px_24px_rgba(0,0,0,0.3),0_0_24px_var(--brand-teal-glow)]",
         href && "cursor-pointer",
         className
@@ -58,7 +59,7 @@ export function KpiTile({
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <defs>
-                <linearGradient id={`spark-${title}`} x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--brand-teal)" stopOpacity={0.35} />
                   <stop offset="100%" stopColor="var(--brand-teal)" stopOpacity={0} />
                 </linearGradient>
@@ -68,7 +69,7 @@ export function KpiTile({
                 dataKey="value"
                 stroke="var(--brand-teal)"
                 strokeWidth={1.5}
-                fill={`url(#spark-${title})`}
+                fill={`url(#${gradientId})`}
               />
             </AreaChart>
           </ResponsiveContainer>

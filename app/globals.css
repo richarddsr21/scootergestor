@@ -357,3 +357,13 @@ body.app-theme [data-slot="dialog-overlay"] {
 body.app-theme [data-slot="dialog-content"] {
   border-radius: 16px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  body.app-theme [data-slot="button"].bg-primary,
+  body.app-theme [data-slot="card"],
+  body.app-theme [data-slot="button"].bg-primary:hover,
+  body.app-theme [data-slot="button"].bg-primary:active {
+    transition: none;
+    transform: none;
+  }
+}

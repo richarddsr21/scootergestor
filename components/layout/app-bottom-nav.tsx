@@ -56,7 +56,7 @@ export function AppBottomNav({ lowStockCount = 0 }: AppBottomNavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] transition-transform active:scale-[0.92]",
+              "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] transition-transform active:scale-[0.92] motion-reduce:transition-none motion-reduce:active:scale-100",
               active ? "text-brand-teal" : "text-muted-foreground"
             )}
           >
@@ -76,7 +76,7 @@ export function AppBottomNav({ lowStockCount = 0 }: AppBottomNavProps) {
         <SheetTrigger asChild>
           <button
             type="button"
-            className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] text-muted-foreground transition-transform active:scale-[0.92]"
+            className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] text-muted-foreground transition-transform active:scale-[0.92] motion-reduce:transition-none motion-reduce:active:scale-100"
           >
             <Menu className="size-5" />
             Mais
