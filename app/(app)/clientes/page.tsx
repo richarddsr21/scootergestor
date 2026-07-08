@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { MetricCard } from "@/components/shared/metric-card"
+import { KpiTile } from "@/components/dashboard/kpi-tile"
 import { EmptyState } from "@/components/shared/empty-state"
 import { SearchInput } from "@/components/shared/search-input"
 import { Pagination } from "@/components/shared/pagination"
@@ -29,14 +29,10 @@ function fmtDate(d: string) {
 }
 
 const AVATAR_COLORS = [
-  "bg-blue-500",
-  "bg-violet-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-teal-500",
+  "bg-brand-teal-dim",
+  "bg-brand-violet-dim",
+  "bg-brand-amber-dim",
+  "bg-brand-coral-dim",
 ]
 
 function avatarColor(name: string) {
@@ -135,28 +131,10 @@ export default async function ClientesPage({
       </div>
 
       {/* Metric summary */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard
-          title="Total de clientes"
-          value={String(totalCount ?? 0)}
-          icon={Users}
-          colorClass="text-primary"
-          bgClass="bg-primary/10"
-        />
-        <MetricCard
-          title="Novos este mês"
-          value={String(newThisMonth ?? 0)}
-          icon={UserCheck}
-          colorClass="text-emerald-600 dark:text-emerald-400"
-          bgClass="bg-emerald-500/10"
-        />
-        <MetricCard
-          title="Com scooter"
-          value={String(withVehicles ?? 0)}
-          icon={Bike}
-          colorClass="text-violet-600 dark:text-violet-400"
-          bgClass="bg-violet-500/10"
-        />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <KpiTile title="Total de clientes" numericValue={totalCount ?? 0} icon={<Users />} />
+        <KpiTile title="Novos este mês" numericValue={newThisMonth ?? 0} icon={<UserCheck />} />
+        <KpiTile title="Com scooter" numericValue={withVehicles ?? 0} icon={<Bike />} />
       </div>
 
       <div className="max-w-sm">
@@ -185,7 +163,7 @@ export default async function ClientesPage({
               const color = avatarColor(c.name)
               return (
                 <Link key={c.id} href={`/clientes/${c.id}`}>
-                  <Card className="group hover:shadow-md hover:-translate-y-px transition-all duration-200 cursor-pointer border-border/60">
+                  <Card className="group border-border/60 transition-all duration-200 hover:border-brand-teal hover:-translate-y-0.5 hover:shadow-[0_0_20px_var(--brand-teal-glow)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 cursor-pointer">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         {/* Avatar */}
