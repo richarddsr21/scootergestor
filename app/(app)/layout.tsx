@@ -3,6 +3,7 @@ import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
 import { redirect } from "next/navigation"
 import { AppShell } from "@/components/layout/app-shell"
 import { AuthProvider } from "@/components/providers/auth-provider"
+import { manrope, inter, jetbrainsMono } from "./fonts"
 import type { Profile, Company } from "@/types/app"
 
 export default async function AppLayout({
@@ -40,6 +41,7 @@ export default async function AppLayout({
         profile={profile as Profile}
         companyName={company.name}
         lowStockCount={lowStockCount ?? 0}
+        fontVariables={`${manrope.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       >
         {children}
       </AppShell>

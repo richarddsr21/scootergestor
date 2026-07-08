@@ -94,6 +94,10 @@ body.app-theme {
   --brand-coral:      #FF6B6B;
   --brand-coral-dim:  #E05555;
 
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-display: var(--font-manrope), "Manrope", sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, monospace;
+
   /* Light (padrão do body.app-theme sozinho, sem .dark) */
   --background: #FFFFFF;
   --foreground: var(--brand-ink);
