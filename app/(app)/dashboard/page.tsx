@@ -240,7 +240,7 @@ export default async function DashboardPage() {
           <Gauge
             value={monthRevenue}
             target={prevMonthRevenue}
-            format={fmt}
+            format="currency"
             label="Faturamento do Mês"
           />
         </div>

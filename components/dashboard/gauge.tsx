@@ -4,12 +4,17 @@ import * as React from "react"
 import { useReducedMotion, animate } from "framer-motion"
 import { cn } from "@/lib/utils"
 
+const FORMATTERS: Record<"integer" | "currency", (n: number) => string> = {
+  integer: (n) => String(Math.round(n)),
+  currency: (n) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n),
+}
+
 interface GaugeProps {
   /** Valor atual (ex.: faturamento do mês) */
   value: number
   /** Valor de referência que define as zonas (ex.: faturamento do mês anterior) */
   target: number
-  format: (n: number) => string
+  format?: "integer" | "currency"
   label: string
   size?: number
   className?: string
@@ -21,7 +26,7 @@ const CY = 100
 // Arco semicircular do ponto esquerdo (180°) ao ponto direito (0°), passando por cima.
 const ARC_D = `M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}`
 
-export function Gauge({ value, target, format, label, size = 220, className }: GaugeProps) {
+export function Gauge({ value, target, format = "integer", label, size = 220, className }: GaugeProps) {
   const prefersReducedMotion = useReducedMotion()
   const [animatedPct, setAnimatedPct] = React.useState(0)
 
@@ -65,7 +70,7 @@ export function Gauge({ value, target, format, label, size = 220, className }: G
         width={size}
         height={size * 0.575}
         role="img"
-        aria-label={`${label}: ${format(value)}, ${referencePct}% da referência, zona ${zoneLabel}`}
+        aria-label={`${label}: ${FORMATTERS[format](value)}, ${referencePct}% da referência, zona ${zoneLabel}`}
       >
         <path d={ARC_D} pathLength={100} className="stroke-border" strokeWidth={14} fill="none" strokeLinecap="round" />
         <path
@@ -114,7 +119,7 @@ export function Gauge({ value, target, format, label, size = 220, className }: G
         <circle cx={CX} cy={CY} r={6} className="fill-foreground" />
       </svg>
       <p className={cn("font-mono text-3xl font-bold tabular-nums -mt-2", zoneClass)}>
-        {format(value)}
+        {FORMATTERS[format](value)}
       </p>
       <p className="text-xs text-muted-foreground mt-0.5">
         {label} · {referencePct}% do mês anterior
