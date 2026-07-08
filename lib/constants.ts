@@ -61,6 +61,19 @@ export const OS_PRIORITY_COLORS: Record<string, string> = {
   urgente: "bg-red-100 text-red-700",
 }
 
+export function priorityZone(priority: string): "optimal" | "warning" | "critical" {
+  if (priority === "urgente") return "critical"
+  if (priority === "alta") return "warning"
+  return "optimal"
+}
+
+export function priorityLabel(priority: string): string {
+  if (priority === "urgente") return "Urgente"
+  if (priority === "alta") return "Alta"
+  if (priority === "baixa") return "Baixa"
+  return "Normal"
+}
+
 export const SALE_STATUS = ["concluida", "cancelada", "pendente"] as const
 export type SaleStatus = (typeof SALE_STATUS)[number]
 

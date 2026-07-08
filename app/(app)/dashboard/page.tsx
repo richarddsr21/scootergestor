@@ -12,6 +12,7 @@ import { KpiTile } from "@/components/dashboard/kpi-tile"
 import { MetricChip } from "@/components/dashboard/metric-chip"
 import { RevenueChart } from "@/components/dashboard/revenue-chart"
 import { bucketByDay } from "@/lib/dashboard-charts"
+import { priorityZone, priorityLabel } from "@/lib/constants"
 import { Gauge } from "@/components/dashboard/gauge"
 import { ZoneBar } from "@/components/dashboard/zone-bar"
 import { StatusPill } from "@/components/shared/status-pill"
@@ -51,18 +52,6 @@ function fmtDate(d: string) {
 }
 function fmtDateTime(d: string) {
   return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
-}
-
-function priorityZone(priority: string): "optimal" | "warning" | "critical" {
-  if (priority === "urgente") return "critical"
-  if (priority === "alta") return "warning"
-  return "optimal"
-}
-function priorityLabel(priority: string): string {
-  if (priority === "urgente") return "Urgente"
-  if (priority === "alta") return "Alta"
-  if (priority === "baixa") return "Baixa"
-  return "Normal"
 }
 
 export default async function DashboardPage() {
