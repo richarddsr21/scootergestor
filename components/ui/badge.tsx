@@ -21,6 +21,12 @@ const badgeVariants = cva(
           "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
         info:
           "border-transparent bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+        zoneOptimal:
+          "border-transparent badge-zone-optimal",
+        zoneWarning:
+          "border-transparent badge-zone-warning",
+        zoneCritical:
+          "border-transparent badge-zone-critical",
       },
     },
     defaultVariants: {
