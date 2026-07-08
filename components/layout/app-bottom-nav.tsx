@@ -56,7 +56,7 @@ export function AppBottomNav({ lowStockCount = 0 }: AppBottomNavProps) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] transition-transform active:scale-[0.92] motion-reduce:transition-none motion-reduce:active:scale-100",
+              "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[11px] transition-transform active:scale-[0.92] motion-reduce:transition-none motion-reduce:active:scale-100 outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 focus-visible:ring-offset-card",
               active ? "text-brand-teal" : "text-muted-foreground"
             )}
           >

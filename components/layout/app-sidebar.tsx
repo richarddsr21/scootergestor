@@ -98,7 +98,7 @@ function SidebarNav({
                         href={item.href}
                         onClick={onNavigate}
                         className={cn(
-                          "relative flex size-9 items-center justify-center rounded-md transition-colors",
+                          "relative flex size-9 items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                           isActive
                             ? "bg-brand-teal-glow text-brand-teal border-l-2 border-brand-teal"
                             : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -122,7 +122,7 @@ function SidebarNav({
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    "relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors",
+                    "relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                     isActive
                       ? "border-l-2 border-brand-teal bg-brand-teal-glow text-brand-teal font-medium"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
