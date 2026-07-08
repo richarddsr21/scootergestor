@@ -56,6 +56,7 @@ export function Gauge({ value, target, format, label, size = 220, className }: G
   const criticalLen = warningBoundary * 100
   const warningLen = (optimalBoundary - warningBoundary) * 100
   const optimalLen = (1 - optimalBoundary) * 100
+  const referencePct = Math.round((value / (target || 1)) * 100)
 
   return (
     <div className={cn("flex flex-col items-center", className)}>
@@ -64,7 +65,7 @@ export function Gauge({ value, target, format, label, size = 220, className }: G
         width={size}
         height={size * 0.575}
         role="img"
-        aria-label={`${label}: ${format(value)}, ${Math.round((value / target) * 100)}% da referência, zona ${zoneLabel}`}
+        aria-label={`${label}: ${format(value)}, ${referencePct}% da referência, zona ${zoneLabel}`}
       >
         <path d={ARC_D} pathLength={100} className="stroke-border" strokeWidth={14} fill="none" strokeLinecap="round" />
         <path
@@ -116,7 +117,7 @@ export function Gauge({ value, target, format, label, size = 220, className }: G
         {format(value)}
       </p>
       <p className="text-xs text-muted-foreground mt-0.5">
-        {label} · {Math.round((value / (target || 1)) * 100)}% do mês anterior
+        {label} · {referencePct}% do mês anterior
       </p>
     </div>
   )
