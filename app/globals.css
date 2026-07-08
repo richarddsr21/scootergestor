@@ -93,6 +93,14 @@ body.app-theme {
   --brand-teal-glow:  rgba(0, 191, 166, 0.15);
   --brand-coral:      #FF6B6B;
   --brand-coral-dim:  #E05555;
+  --brand-amber:      #FFB020;
+  --brand-amber-dim:  #DB9200;
+  --brand-violet:     #8B5CF6;
+  --brand-violet-dim: #7C3AED;
+
+  --zone-optimal:  var(--brand-teal-dim);
+  --zone-warning:  var(--brand-amber-dim);
+  --zone-critical: var(--brand-coral-dim);
 
   --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
   --font-display: var(--font-manrope), "Manrope", sans-serif;
@@ -144,6 +152,15 @@ html.dark body.app-theme {
   --accent: #252B3B;       /* surface-3 */
   --accent-foreground: #F0F2F8;
   --destructive: var(--brand-coral);
+  --brand-amber:      #FFC44D;
+  --brand-amber-dim:  #FFB020;
+  --brand-violet:     #A78BFA;
+  --brand-violet-dim: #8B5CF6;
+
+  --zone-optimal:  var(--brand-teal);
+  --zone-warning:  var(--brand-amber);
+  --zone-critical: var(--brand-coral);
+
   --border: rgba(255, 255, 255, 0.06);
   --input: rgba(255, 255, 255, 0.10);
   --ring: var(--brand-teal);
@@ -181,6 +198,13 @@ html.dark body.app-theme {
   --color-brand-coral:     var(--brand-coral);
   --color-brand-coral-dim: var(--brand-coral-dim);
   --color-brand-ink:       var(--brand-ink);
+  --color-brand-amber:      var(--brand-amber);
+  --color-brand-amber-dim:  var(--brand-amber-dim);
+  --color-brand-violet:     var(--brand-violet);
+  --color-brand-violet-dim: var(--brand-violet-dim);
+  --color-zone-optimal:     var(--zone-optimal);
+  --color-zone-warning:     var(--zone-warning);
+  --color-zone-critical:    var(--zone-critical);
 
   /* Semantic */
   --color-background: var(--background);
@@ -366,4 +390,23 @@ body.app-theme [data-slot="dialog-content"] {
     transition: none;
     transform: none;
   }
+}
+
+/* ── Badges de zona (teal/âmbar/coral) — usados pelo StatusPill ──
+   Token-driven: nunca usar bg-emerald-100 etc. direto num componente. */
+.badge-zone-optimal {
+  background-color: color-mix(in oklab, var(--zone-optimal) 15%, transparent);
+  color: var(--zone-optimal);
+}
+.badge-zone-warning {
+  background-color: color-mix(in oklab, var(--zone-warning) 15%, transparent);
+  color: var(--zone-warning);
+}
+.badge-zone-critical {
+  background-color: color-mix(in oklab, var(--zone-critical) 15%, transparent);
+  color: var(--zone-critical);
+}
+.badge-zone-neutral {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
 }
