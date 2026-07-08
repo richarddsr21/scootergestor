@@ -12,6 +12,10 @@ import { KpiTile } from "@/components/dashboard/kpi-tile"
 import { MetricChip } from "@/components/dashboard/metric-chip"
 import { RevenueChart } from "@/components/dashboard/revenue-chart"
 import { bucketByDay } from "@/lib/dashboard-charts"
+import { Gauge } from "@/components/dashboard/gauge"
+import { ZoneBar } from "@/components/dashboard/zone-bar"
+import { StatusPill } from "@/components/shared/status-pill"
+import { cn } from "@/lib/utils"
 import {
   DollarSign, ShoppingCart, Wrench, AlertTriangle,
   Users, CheckCircle, Clock, ArrowRight,
@@ -49,6 +53,18 @@ function fmtDateTime(d: string) {
   return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
 }
 
+function priorityZone(priority: string): "optimal" | "warning" | "critical" {
+  if (priority === "urgente") return "critical"
+  if (priority === "alta") return "warning"
+  return "optimal"
+}
+function priorityLabel(priority: string): string {
+  if (priority === "urgente") return "Urgente"
+  if (priority === "alta") return "Alta"
+  if (priority === "baixa") return "Baixa"
+  return "Normal"
+}
+
 export default async function DashboardPage() {
   const user = await getAuthUser()
   if (!user) redirect("/login")
@@ -67,6 +83,9 @@ export default async function DashboardPage() {
   const sevenDaysAgo = new Date(now)
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
   const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10)
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const prevMonthStart = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}-01`
+  const prevMonthEnd = monthStart
 
   const [
     { data: todayPayments },
@@ -83,6 +102,7 @@ export default async function DashboardPage() {
     { data: sevenDayOsCreated },
     { data: monthSales },
     { data: monthOs },
+    { data: prevMonthPayments },
   ] = await Promise.all([
     supabase
       .from("payments")
@@ -161,11 +181,18 @@ export default async function DashboardPage() {
       .eq("company_id", cid)
       .gte("created_at", monthStart)
       .not("customer_id", "is", null),
+    supabase
+      .from("payments")
+      .select("amount, fee_amount, fee_absorbed")
+      .eq("company_id", cid)
+      .gte("paid_at", prevMonthStart)
+      .lt("paid_at", prevMonthEnd),
   ])
 
   const netAmount = (p: any) => (p.amount ?? 0) - ((p as any).fee_absorbed ? ((p as any).fee_amount ?? 0) : 0)
   const todayRevenue = (todayPayments ?? []).reduce((s, p) => s + netAmount(p), 0)
   const monthRevenue = (monthPayments ?? []).reduce((s, p) => s + netAmount(p), 0)
+  const prevMonthRevenue = (prevMonthPayments ?? []).reduce((s, p) => s + netAmount(p), 0)
   const lowStockCount = (lowStockProducts ?? []).filter(
     (p) => p.stock_quantity <= p.minimum_stock
   ).length
@@ -209,16 +236,14 @@ export default async function DashboardPage() {
 
       {/* Bento hero: 4 KPIs principais */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:grid-rows-2">
-        <KpiTile
-          size="hero"
-          className="col-span-2 row-span-2"
-          title="Faturamento do Mês"
-          numericValue={monthRevenue}
-          format="currency"
-          icon={<DollarSign />}
-          href="/relatorios"
-          sparkline={revenue7d.map((d) => d.total)}
-        />
+        <div className="col-span-2 row-span-2 flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_4px_24px_rgba(0,0,0,0.3),0_0_24px_var(--brand-teal-glow)]">
+          <Gauge
+            value={monthRevenue}
+            target={prevMonthRevenue}
+            format={fmt}
+            label="Faturamento do Mês"
+          />
+        </div>
         <KpiTile
           title="OS Abertas"
           numericValue={openOsCount ?? 0}
@@ -226,12 +251,25 @@ export default async function DashboardPage() {
           href="/oficina"
           sparkline={osCreated7d.map((d) => d.total)}
         />
-        <KpiTile
-          title="Estoque Baixo"
-          numericValue={lowStockCount}
-          icon={<AlertTriangle />}
-          href="/estoque"
-        />
+        <div className="group relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_4px_24px_rgba(0,0,0,0.3)] transition-all duration-200 hover:border-brand-teal hover:-translate-y-0.5 hover:shadow-[0_0_20px_var(--brand-teal-glow)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+          <Link href="/estoque" className="absolute inset-0 z-10" aria-label="Ver estoque baixo">
+            <span className="sr-only">Ver estoque baixo</span>
+          </Link>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Estoque Baixo
+            </p>
+            <AlertTriangle className="size-5 shrink-0 text-brand-teal" aria-hidden="true" />
+          </div>
+          <p className="font-mono text-2xl font-medium tabular-nums text-foreground">
+            {lowStockCount}
+          </p>
+          <ZoneBar
+            value={lowStockCount}
+            max={(lowStockProducts ?? []).length}
+            label={`${(lowStockProducts ?? []).length > 0 ? Math.round((lowStockCount / (lowStockProducts ?? []).length) * 100) : 0}% do catálogo`}
+          />
+        </div>
         <KpiTile
           title="Clientes Atendidos no Mês"
           numericValue={monthCustomerIds.size}
@@ -273,6 +311,9 @@ export default async function DashboardPage() {
                         <span className="font-mono text-sm font-medium">{os.order_number}</span>
                         {os.service_order_statuses && (
                           <StatusBadge label={os.service_order_statuses.name} color={os.service_order_statuses.color} />
+                        )}
+                        {(os.priority === "urgente" || os.priority === "alta") && (
+                          <StatusPill zone={priorityZone(os.priority)} label={priorityLabel(os.priority)} />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
@@ -377,7 +418,10 @@ export default async function DashboardPage() {
                         </span>
                         <Badge
                           variant="secondary"
-                          className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${isOs ? "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300" : "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300"}`}
+                          className={cn(
+                            "text-[10px] px-1.5 py-0 h-4 shrink-0",
+                            isOs && "bg-brand-violet/15 text-brand-violet"
+                          )}
                         >
                           {isOs ? "OS" : "Venda"}
                         </Badge>
