@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, LogOut, Settings, ChevronDown, User, Sun, Moon } from "lucide-react"
+import { Search, LogOut, Settings, ChevronDown, User, Sun, Moon, Menu } from "lucide-react"
 import { useTransition } from "react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,7 @@ function ThemeToggle() {
 
 interface AppHeaderProps {
   profile?: Profile | null
+  onMenuClick: () => void
 }
 
 function getInitials(name: string) {
@@ -54,12 +55,21 @@ function getInitials(name: string) {
     .toUpperCase()
 }
 
-export function AppHeader({ profile }: AppHeaderProps) {
+export function AppHeader({ profile, onMenuClick }: AppHeaderProps) {
   const [isPending, startTransition] = useTransition()
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
-      {/* Search */}
+    <header className="mx-4 mt-4 flex h-14 shrink-0 items-center gap-3 rounded-2xl border border-border bg-card/80 px-4 shadow-[0_4px_24px_rgba(0,0,0,0.3)] backdrop-blur-md">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-9 shrink-0 xl:hidden"
+        onClick={onMenuClick}
+      >
+        <Menu className="size-4" />
+        <span className="sr-only">Abrir menu</span>
+      </Button>
+
       <div className="relative flex-1 max-w-sm hidden md:block">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
         <Input
@@ -73,7 +83,6 @@ export function AppHeader({ profile }: AppHeaderProps) {
         <ThemeToggle />
         <NotificationBell />
 
-        {/* User dropdown */}
         {profile && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -132,7 +141,6 @@ export function AppHeader({ profile }: AppHeaderProps) {
           </DropdownMenu>
         )}
 
-        {/* Fallback if no profile */}
         {!profile && (
           <Button variant="ghost" size="icon" className="size-9">
             <User className="size-4" />
