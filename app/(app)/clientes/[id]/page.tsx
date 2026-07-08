@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Pencil, Plus, Phone, Mail, MapPin, FileText, Bike, Wrench, DollarSign, CalendarDays, MessageCircle } from "lucide-react"
 import { VehiclesSection } from "@/components/customers/vehicles-section"
 import { ClienteDetalheExportButton } from "@/components/customers/cliente-detalhe-export-button"
-import { OS_PRIORITY_LABELS, OS_PRIORITY_COLORS } from "@/lib/constants"
+import { KpiTile } from "@/components/dashboard/kpi-tile"
+import { StatusPill } from "@/components/shared/status-pill"
+import { priorityZone, priorityLabel } from "@/lib/constants"
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
@@ -32,14 +34,10 @@ function initials(name: string) {
 }
 
 const AVATAR_COLORS = [
-  "from-blue-500 to-blue-600",
-  "from-violet-500 to-violet-600",
-  "from-emerald-500 to-emerald-600",
-  "from-amber-500 to-amber-600",
-  "from-rose-500 to-rose-600",
-  "from-cyan-500 to-cyan-600",
-  "from-indigo-500 to-indigo-600",
-  "from-teal-500 to-teal-600",
+  "bg-avatar-teal",
+  "bg-avatar-violet",
+  "bg-avatar-amber",
+  "bg-avatar-coral",
 ]
 
 function avatarColor(name: string) {
@@ -98,7 +96,7 @@ export default async function ClienteDetailPage({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div
-            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white text-xl font-bold select-none shadow-md ${color}`}
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white text-xl font-bold select-none shadow-md ${color}`}
           >
             {initials(customer.name)}
           </div>
@@ -140,59 +138,11 @@ export default async function ClienteDetailPage({
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-                <DollarSign className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Total gasto</p>
-                <p className="font-display font-bold text-base tabular-nums">{fmt(totalGasto)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10">
-                <Wrench className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Total de OS</p>
-                <p className="font-display font-bold text-base tabular-nums">{serviceOrders?.length ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
-                <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">OS em aberto</p>
-                <p className="font-display font-bold text-base tabular-nums">{osAbertasCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
-                <Bike className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Scooters</p>
-                <p className="font-display font-bold text-base tabular-nums">{vehicles?.length ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiTile title="Total gasto" numericValue={totalGasto} format="currency" icon={<DollarSign />} />
+        <KpiTile title="Total de OS" numericValue={serviceOrders?.length ?? 0} icon={<Wrench />} />
+        <KpiTile title="OS em aberto" numericValue={osAbertasCount} icon={<Wrench />} />
+        <KpiTile title="Scooters" numericValue={vehicles?.length ?? 0} icon={<Bike />} />
       </div>
 
       {/* Main content */}
@@ -319,10 +269,8 @@ export default async function ClienteDetailPage({
                               {os.service_order_statuses.name}
                             </span>
                           )}
-                          {os.priority && (
-                            <span className={`text-xs px-1.5 py-0.5 rounded-md ${OS_PRIORITY_COLORS[os.priority] ?? ""}`}>
-                              {OS_PRIORITY_LABELS[os.priority]}
-                            </span>
+                          {(os.priority === "urgente" || os.priority === "alta") && (
+                            <StatusPill zone={priorityZone(os.priority)} label={priorityLabel(os.priority)} />
                           )}
                         </div>
                         {os.reported_problem && (
