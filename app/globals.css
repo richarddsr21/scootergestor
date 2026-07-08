@@ -111,6 +111,16 @@ body.app-theme {
   --zone-warning-text:  #9B6800;
   --zone-critical-text: #D92E2E;
 
+  /* Tons dedicados de avatar: mesma família de matiz do brand-teal/-violet/
+     -amber/-coral, mas escurecidos o suficiente pra garantir ≥4.5:1 contra
+     texto branco (as variantes -dim NÃO passam nesse teste pra este uso —
+     ver docs/superpowers/specs/2026-07-08-clientes-instrument-panel-design.md).
+     Valor único (sem variante dark), contraste calculado é absoluto. */
+  --avatar-teal:   #007364;
+  --avatar-violet: #7239F4;
+  --avatar-amber:  #8D5B00;
+  --avatar-coral:  #CE0000;
+
   --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
   --font-display: var(--font-manrope), "Manrope", sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, monospace;
@@ -216,6 +226,10 @@ html.dark body.app-theme {
   --color-brand-amber-dim:  var(--brand-amber-dim);
   --color-brand-violet:     var(--brand-violet);
   --color-brand-violet-dim: var(--brand-violet-dim);
+  --color-avatar-teal:      var(--avatar-teal);
+  --color-avatar-violet:    var(--avatar-violet);
+  --color-avatar-amber:     var(--avatar-amber);
+  --color-avatar-coral:     var(--avatar-coral);
   --color-zone-optimal:     var(--zone-optimal);
   --color-zone-warning:     var(--zone-warning);
   --color-zone-critical:    var(--zone-critical);
