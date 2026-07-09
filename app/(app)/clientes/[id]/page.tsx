@@ -11,6 +11,7 @@ import { ClienteDetalheExportButton } from "@/components/customers/cliente-detal
 import { KpiTile } from "@/components/dashboard/kpi-tile"
 import { StatusPill } from "@/components/shared/status-pill"
 import { priorityZone, priorityLabel } from "@/lib/constants"
+import { initials, avatarColorName, AVATAR_BG, AVATAR_BORDER, AVATAR_ICON_TEXT } from "@/lib/avatar"
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
@@ -22,28 +23,6 @@ function fmtDateTime(d: string) {
 
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("")
-}
-
-const AVATAR_COLORS = [
-  "bg-avatar-teal",
-  "bg-avatar-violet",
-  "bg-avatar-amber",
-  "bg-avatar-coral",
-]
-
-function avatarColor(name: string) {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 export default async function ClienteDetailPage({
@@ -84,7 +63,7 @@ export default async function ClienteDetailPage({
   const companyName = (settings as any)?.business_name ?? "ScooterGestor"
   const totalGasto = (serviceOrders ?? []).reduce((sum, os: any) => sum + (os.total ?? 0), 0)
   const osAbertasCount = (serviceOrders ?? []).filter((os: any) => !os.delivered_at).length
-  const color = avatarColor(customer.name)
+  const color = avatarColorName(customer.name)
 
   const whatsappLink = (customer.whatsapp || customer.phone)
     ? `https://wa.me/55${(customer.whatsapp ?? customer.phone ?? "").replace(/\D/g, "")}`
@@ -96,7 +75,7 @@ export default async function ClienteDetailPage({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div
-            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white text-xl font-bold select-none shadow-md ${color}`}
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white text-xl font-bold select-none shadow-md ${AVATAR_BG[color]}`}
           >
             {initials(customer.name)}
           </div>
@@ -149,7 +128,7 @@ export default async function ClienteDetailPage({
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-1">
           {/* Contact card */}
-          <Card className="border-border/60">
+          <Card className={`border-border/60 border-l-2 ${AVATAR_BORDER[color]}`}>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Informações de contato</CardTitle>
             </CardHeader>
@@ -220,7 +199,7 @@ export default async function ClienteDetailPage({
             </CardContent>
           </Card>
 
-          <VehiclesSection vehicles={vehicles ?? []} customerId={id} />
+          <VehiclesSection vehicles={vehicles ?? []} customerId={id} iconColorClass={AVATAR_ICON_TEXT[color]} />
         </div>
 
         {/* OS history */}
