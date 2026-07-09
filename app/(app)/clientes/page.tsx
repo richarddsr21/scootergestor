@@ -12,33 +12,12 @@ import { SearchInput } from "@/components/shared/search-input"
 import { Pagination } from "@/components/shared/pagination"
 import { ClientesExportButton } from "@/components/customers/clientes-export-button"
 import { Plus, Users, Phone, Mail, MapPin, Bike, CalendarDays, UserCheck } from "lucide-react"
+import { initials, avatarColorName, AVATAR_BG, AVATAR_HOVER_CARD, AVATAR_ICON_TEXT } from "@/lib/avatar"
 
 const PAGE_SIZE = 20
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("")
-}
-
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-}
-
-const AVATAR_COLORS = [
-  "bg-avatar-teal",
-  "bg-avatar-violet",
-  "bg-avatar-amber",
-  "bg-avatar-coral",
-]
-
-function avatarColor(name: string) {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 export default async function ClientesPage({
@@ -160,15 +139,15 @@ export default async function ClientesPage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {customers.map((c) => {
               const vCount = vehicleCountMap[c.id] ?? 0
-              const color = avatarColor(c.name)
+              const color = avatarColorName(c.name)
               return (
                 <Link key={c.id} href={`/clientes/${c.id}`}>
-                  <Card className="group border-border/60 transition-all duration-200 hover:border-brand-teal hover:-translate-y-0.5 hover:shadow-[0_0_20px_var(--brand-teal-glow)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 cursor-pointer">
-                    <CardContent className="p-4">
+                  <Card className={`group border-border/60 transition-all duration-200 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 cursor-pointer ${AVATAR_HOVER_CARD[color]}`}>
+                    <CardContent className="p-5">
                       <div className="flex items-start gap-3">
                         {/* Avatar */}
                         <div
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold select-none ${color}`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold select-none ${AVATAR_BG[color]}`}
                         >
                           {initials(c.name)}
                         </div>
@@ -176,33 +155,39 @@ export default async function ClientesPage({
                         {/* Info */}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 justify-between">
-                            <p className="font-semibold text-sm truncate">{c.name}</p>
+                            <p className="font-display font-semibold text-sm truncate">{c.name}</p>
                             {vCount > 0 && (
                               <Badge variant="secondary" className="shrink-0 text-xs gap-1 py-0">
-                                <Bike className="h-2.5 w-2.5" />
+                                <Bike className={`h-2.5 w-2.5 ${AVATAR_ICON_TEXT[color]}`} />
                                 {vCount}
                               </Badge>
                             )}
                           </div>
 
-                          <div className="mt-1.5 space-y-0.5">
+                          <div className="mt-1.5 space-y-1">
                             {(c.whatsapp || c.phone) && (
-                              <div className="flex items-center gap-1.5">
-                                <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted shrink-0">
+                                  <Phone className="h-3 w-3 text-muted-foreground" />
+                                </div>
                                 <span className="text-xs text-muted-foreground truncate">
                                   {c.whatsapp ?? c.phone}
                                 </span>
                               </div>
                             )}
                             {c.email && (
-                              <div className="flex items-center gap-1.5">
-                                <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted shrink-0">
+                                  <Mail className="h-3 w-3 text-muted-foreground" />
+                                </div>
                                 <span className="text-xs text-muted-foreground truncate">{c.email}</span>
                               </div>
                             )}
                             {(c.city || c.state) && (
-                              <div className="flex items-center gap-1.5">
-                                <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted shrink-0">
+                                  <MapPin className="h-3 w-3 text-muted-foreground" />
+                                </div>
                                 <span className="text-xs text-muted-foreground truncate">
                                   {[c.city, c.state].filter(Boolean).join(" – ")}
                                 </span>
