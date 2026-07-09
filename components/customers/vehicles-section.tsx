@@ -2,6 +2,7 @@
 
 import { useState, useActionState, useRef, useEffect } from "react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -79,7 +80,7 @@ function VehicleForm({ vehicle, customerId, onClose }: {
   )
 }
 
-export function VehiclesSection({ vehicles, customerId }: { vehicles: Vehicle[]; customerId: string }) {
+export function VehiclesSection({ vehicles, customerId, iconColorClass }: { vehicles: Vehicle[]; customerId: string; iconColorClass?: string }) {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Vehicle | null>(null)
 
@@ -98,7 +99,9 @@ export function VehiclesSection({ vehicles, customerId }: { vehicles: Vehicle[];
           vehicles.map((v) => (
             <div key={v.id} className="flex items-start justify-between gap-2 p-2 rounded border bg-muted/20">
               <div className="flex items-start gap-2">
-                <Bike className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted shrink-0">
+                  <Bike className={cn("h-3.5 w-3.5", iconColorClass ?? "text-muted-foreground")} />
+                </div>
                 <div>
                   <p className="text-sm font-medium">{[v.brand, v.model].filter(Boolean).join(" ") || v.type}</p>
                   <p className="text-xs text-muted-foreground">{v.type}{v.color ? ` • ${v.color}` : ""}{v.voltage ? ` • ${v.voltage}` : ""}</p>
