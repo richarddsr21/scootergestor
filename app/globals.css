@@ -91,6 +91,9 @@ body.app-theme {
   --brand-teal:       #00BFA6;
   --brand-teal-dim:   #00A08C;
   --brand-teal-glow:  rgba(0, 191, 166, 0.15);
+  --brand-violet-glow: rgba(139, 92, 246, 0.15);
+  --brand-amber-glow:  rgba(255, 176, 32, 0.15);
+  --brand-coral-glow:  rgba(255, 107, 107, 0.15);
   --brand-coral:      #FF6B6B;
   --brand-coral-dim:  #E05555;
   --brand-amber:      #FFB020;
@@ -219,6 +222,9 @@ html.dark body.app-theme {
   --color-brand-teal:      var(--brand-teal);
   --color-brand-teal-dim:  var(--brand-teal-dim);
   --color-brand-teal-glow: var(--brand-teal-glow);
+  --color-brand-violet-glow: var(--brand-violet-glow);
+  --color-brand-amber-glow:  var(--brand-amber-glow);
+  --color-brand-coral-glow:  var(--brand-coral-glow);
   --color-brand-coral:     var(--brand-coral);
   --color-brand-coral-dim: var(--brand-coral-dim);
   --color-brand-ink:       var(--brand-ink);
