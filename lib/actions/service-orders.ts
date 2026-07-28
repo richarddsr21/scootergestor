@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import type { ActionState } from "./auth"
 import { insertCashMovementsForPayment } from "./cash"
+import { nextServiceOrderNumber } from "@/lib/order-numbers"
 
 async function getCtx() {
   const supabase = await createClient()
@@ -41,20 +42,15 @@ export async function createServiceOrderAction(
   const parsed = createOsSchema.safeParse(Object.fromEntries(formData))
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  // Get default status
-  const { data: defaultStatus } = await ctx.supabase
-    .from("service_order_statuses")
-    .select("id")
-    .eq("company_id", ctx.profile.company_id)
-    .eq("is_default", true)
-    .maybeSingle()
-
-  // Generate order number
-  const { count } = await ctx.supabase
-    .from("service_orders").select("*", { count: "exact", head: true })
-    .eq("company_id", ctx.profile.company_id)
-
-  const orderNumber = `OS-${String((count ?? 0) + 1).padStart(5, "0")}`
+  const [{ data: defaultStatus }, orderNumber] = await Promise.all([
+    ctx.supabase
+      .from("service_order_statuses")
+      .select("id")
+      .eq("company_id", ctx.profile.company_id)
+      .eq("is_default", true)
+      .maybeSingle(),
+    nextServiceOrderNumber(ctx.supabase, ctx.profile.company_id),
+  ])
 
   const { customer_id, vehicle_id, technician_id, expected_delivery_at, internal_notes, vehicle_brand, vehicle_model, vehicle_chassis, mileage_km, payment_terms, ...rest } = parsed.data
 

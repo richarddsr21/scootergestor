@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import type { ActionState } from "./auth"
+import { nextServiceOrderNumber } from "@/lib/order-numbers"
 
 async function getCtx() {
   const supabase = await createClient()
@@ -212,19 +213,15 @@ export async function approveQuoteAction(quoteId: string): Promise<ActionState &
   const laborTotal = items.filter((i) => i.item_type === "labor").reduce((s, i) => s + i.total, 0)
   const partsTotal = items.filter((i) => i.item_type !== "labor").reduce((s, i) => s + i.total, 0)
 
-  const [{ data: defaultStatus }, { count }] = await Promise.all([
+  const [{ data: defaultStatus }, orderNumber] = await Promise.all([
     ctx.supabase
       .from("service_order_statuses")
       .select("id")
       .eq("company_id", ctx.profile.company_id)
       .eq("is_default", true)
       .maybeSingle(),
-    ctx.supabase
-      .from("service_orders").select("*", { count: "exact", head: true })
-      .eq("company_id", ctx.profile.company_id),
+    nextServiceOrderNumber(ctx.supabase, ctx.profile.company_id),
   ])
-
-  const orderNumber = `OS-${String((count ?? 0) + 1).padStart(5, "0")}`
 
   const { data: os, error: osError } = await ctx.supabase
     .from("service_orders")
