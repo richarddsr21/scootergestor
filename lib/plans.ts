@@ -35,69 +35,11 @@ export interface PlanConfig {
 }
 
 export const PLAN_CONFIGS: Record<Plan, PlanConfig> = {
-  start: {
-    id: "start",
-    name: "Start",
-    price: 97,
-    setupFee: 297,
-    limits: {
-      maxUsers: 2,
-      maxProducts: 300,
-      maxCustomers: 300,
-      maxServiceOrdersPerMonth: 100,
-      maxUnits: 1,
-    },
-    features: {
-      customChecklist: false,
-      customStatuses: false,
-      customTheme: false,
-      whatsappTemplates: false,
-      advancedReports: false,
-      serviceOrderPhotos: false,
-      pdfExport: false,
-      suppliers: false,
-      purchases: false,
-      advancedWarranty: false,
-      advancedPermissions: false,
-      pdv: false,
-      financialModule: true,
-      multipleUnits: false,
-    },
-  },
   pro: {
     id: "pro",
     name: "Pro",
-    price: 197,
+    price: 147,
     setupFee: 597,
-    limits: {
-      maxUsers: 5,
-      maxProducts: 1500,
-      maxCustomers: 2000,
-      maxServiceOrdersPerMonth: 500,
-      maxUnits: 1,
-    },
-    features: {
-      customChecklist: true,
-      customStatuses: true,
-      customTheme: false,
-      whatsappTemplates: true,
-      advancedReports: false,
-      serviceOrderPhotos: false,
-      pdfExport: false,
-      suppliers: false,
-      purchases: false,
-      advancedWarranty: true,
-      advancedPermissions: false,
-      pdv: true,
-      financialModule: true,
-      multipleUnits: false,
-    },
-  },
-  premium: {
-    id: "premium",
-    name: "Premium",
-    price: 297,
-    setupFee: 897,
     limits: {
       maxUsers: 10,
       maxProducts: 5000,
@@ -137,11 +79,11 @@ export function getLimit(plan: Plan, limit: keyof PlanLimits): number {
 }
 
 export function getPlanThatUnlocksFeature(feature: keyof PlanFeatures): Plan | null {
-  const order: Plan[] = ["start", "pro", "premium"]
+  const order: Plan[] = ["pro"]
   return order.find((plan) => PLAN_CONFIGS[plan].features[feature]) ?? null
 }
 
 export function getPlanThatUnlocksLimit(limit: keyof PlanLimits, value: number): Plan | null {
-  const order: Plan[] = ["start", "pro", "premium"]
+  const order: Plan[] = ["pro"]
   return order.find((plan) => PLAN_CONFIGS[plan].limits[limit] >= value) ?? null
 }

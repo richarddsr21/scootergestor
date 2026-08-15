@@ -33,7 +33,7 @@ const faqs = [
   },
   {
     q: "O sistema funciona com mais de um funcionário?",
-    a: "Sim. Cada plano tem um limite de usuários. O Start suporta 2, o Pro até 5 e o Premium até 10. Cada usuário tem login próprio e permissões por cargo — o técnico acessa só o que precisa, o dono vê tudo.",
+    a: "Sim. O plano Pro suporta até 10 usuários. Cada usuário tem login próprio e permissões por cargo — o técnico acessa só o que precisa, o dono vê tudo.",
   },
   {
     q: "Os dados da minha loja ficam separados de outras lojas?",

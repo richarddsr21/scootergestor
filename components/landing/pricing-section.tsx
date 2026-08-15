@@ -5,74 +5,34 @@ const WA_DEMO = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Te
 
 const plans = [
   {
-    id: "start",
-    name: "Start",
-    price: 97,
-    dailyPrice: "R$3,23",
-    setup: 297,
-    description: "Para lojas que querem sair do papel e da planilha de vez.",
-    highlight: false,
-    badge: null,
-    limits: ["1 unidade", "2 usuários", "300 produtos", "300 clientes", "100 OS/mês"],
+    id: "pro",
+    name: "Pro",
+    price: 147,
+    dailyPrice: "R$4,90",
+    setup: 597,
+    description: "Tudo que sua loja precisa para sair do papel e da planilha de vez.",
+    highlight: true,
+    badge: "Plano único",
+    limits: ["2 unidades", "10 usuários", "5.000 produtos", "10.000 clientes", "1.500 OS/mês"],
     features: [
       "Dashboard com faturamento do dia",
       "Cadastro de clientes e histórico",
       "Cadastro de produtos com margem",
       "Controle de estoque com alertas",
-      "Vendas e PDV simples",
-      "Ordem de serviço básica",
-      "Status de OS padrão",
-      "Controle de garantia",
-      "Relatórios básicos",
-      "Suporte por WhatsApp",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 197,
-    dailyPrice: "R$6,57",
-    setup: 597,
-    description: "Para lojas com venda de balcão ativa e oficina funcionando.",
-    highlight: true,
-    badge: "Mais recomendado",
-    limits: ["1 unidade", "5 usuários", "1.500 produtos", "2.000 clientes", "500 OS/mês"],
-    features: [
-      "Tudo do Start, mais:",
-      "PDV completo com desconto",
-      "Pagamento misto",
-      "Baixa automática de estoque",
+      "PDV completo com desconto e pagamento misto",
       "OS completa com peças e serviços",
       "Checklist de entrada personalizado",
       "Status de OS personalizados",
       "Diagnóstico e orçamento de OS",
       "Controle de garantia completo",
-      "Histórico completo da scooter",
+      "Histórico avançado da scooter",
       "Templates WhatsApp editáveis",
-      "Financeiro básico",
-      "Relatórios de vendas, estoque e OS",
-    ],
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: 297,
-    dailyPrice: "R$9,90",
-    setup: 897,
-    description: "Para lojas com equipe maior e controle total da operação.",
-    highlight: false,
-    badge: null,
-    limits: ["2 unidades", "10 usuários", "5.000 produtos", "10.000 clientes", "1.500 OS/mês"],
-    features: [
-      "Tudo do Pro, mais:",
-      "Permissões por cargo",
+      "Financeiro completo",
       "Fotos na OS",
       "PDF de OS, orçamento e recibo",
       "Fornecedores e compras",
-      "Histórico avançado da scooter",
-      "Relatórios avançados",
-      "Lucro bruto por produto e OS",
-      "Relatório de serviços mais rentáveis",
+      "Permissões por cargo",
+      "Relatórios avançados e lucro por produto/OS",
       "Suporte prioritário",
       "Treinamento inicial completo",
     ],
@@ -129,12 +89,12 @@ export function PricingSection() {
             <p className="text-sm text-zinc-300 leading-snug">
               Uma loja sem sistema perde em média{" "}
               <span className="text-white font-semibold">R$600–1.200/mês</span> em estoque não
-              registrado, vendas perdidas e retrabalho. O plano Start custa <span className="text-brand-green font-semibold">R$97/mês</span>.
+              registrado, vendas perdidas e retrabalho. O ScooterGestor custa <span className="text-brand-green font-semibold">R$147/mês</span>.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 gap-5 max-w-md mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.id}
