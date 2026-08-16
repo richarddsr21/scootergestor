@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 
 type AsaasWebhookPayload = {
   event: string
-  payment: {
+  payment?: {
     subscription?: string
     externalReference?: string
     nextDueDate?: string
@@ -16,8 +16,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid token" }, { status: 401 })
   }
 
-  const payload = (await req.json()) as AsaasWebhookPayload
+  let payload: AsaasWebhookPayload
+  try {
+    payload = (await req.json()) as AsaasWebhookPayload
+  } catch {
+    // Malformed JSON body — treat as an event we can't process, still 200.
+    return NextResponse.json({ ok: true })
+  }
+
   const { event, payment } = payload
+
+  if (!payment) {
+    // Event type without a `payment` object (e.g. not payment-related) — ignore.
+    return NextResponse.json({ ok: true })
+  }
 
   const supabase = createAdminClient()
 
