@@ -22,6 +22,9 @@ export interface Database {
           subscription_status: string | null
           trial_ends_at: string | null
           subscription_current_period_end: string | null
+          asaas_customer_id: string | null
+          asaas_subscription_id: string | null
+          payment_overdue_since: string | null
           created_at: string
           updated_at: string
         }
