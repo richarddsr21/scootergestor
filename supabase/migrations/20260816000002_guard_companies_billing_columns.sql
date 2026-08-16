@@ -16,14 +16,22 @@
 -- webhook and the billing server action both write these columns
 -- programmatically via createAdminClient(), which is service-role and
 -- therefore NOT subject to RLS — but IS still subject to this trigger, since
--- triggers fire regardless of RLS bypass. auth.role() is Supabase's built-in
--- helper (companion to the auth.jwt() already used by is_saas_admin()) that
--- reads the 'role' claim off the request JWT; PostgREST sets it to
--- 'service_role' for requests authenticated with the service-role key.
+-- triggers fire regardless of RLS bypass. We check current_user (the actual
+-- Postgres role executing the statement) instead of auth.role(): auth.role()
+-- reads the 'role' claim off the request JWT, which is NULL outside of a
+-- PostgREST/Supabase-authenticated request — e.g. the Supabase Dashboard SQL
+-- Editor runs as plain Postgres role `postgres` with no JWT context at all,
+-- so auth.role() = 'service_role' would evaluate to NULL there (not false),
+-- and combined with is_saas_admin() also being false/NULL, the whole
+-- condition is NULL, which does NOT satisfy the IF — so the SQL Editor would
+-- be wrongly blocked, including the plan's own manual-verification UPDATE
+-- statements. current_user correctly reflects `postgres` (SQL Editor),
+-- `service_role` (service-role API calls) and `supabase_admin`, so none of
+-- those are blocked.
 CREATE OR REPLACE FUNCTION guard_companies_billing_columns()
-RETURNS trigger LANGUAGE plpgsql AS $$
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
-  IF is_saas_admin() OR auth.role() = 'service_role' THEN
+  IF is_saas_admin() OR current_user IN ('service_role', 'postgres', 'supabase_admin') THEN
     RETURN NEW;
   END IF;
 

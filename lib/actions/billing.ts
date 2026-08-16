@@ -22,7 +22,13 @@ async function getCtx() {
     .from("companies").select("*").eq("id", profile.company_id).single()
   if (!company) return null
 
-  return { profile, company }
+  const { data: settings } = await supabase
+    .from("company_settings")
+    .select("cnpj")
+    .eq("company_id", profile.company_id)
+    .maybeSingle()
+
+  return { profile, company, cnpj: settings?.cnpj ?? null }
 }
 
 export async function startSubscriptionAction(
@@ -32,7 +38,7 @@ export async function startSubscriptionAction(
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
 
-  const { profile, company } = ctx
+  const { profile, company, cnpj } = ctx
 
   if (company.asaas_subscription_id) {
     try {
@@ -57,17 +63,27 @@ export async function startSubscriptionAction(
   try {
     let customerId = company.asaas_customer_id
     if (!customerId) {
-      if (!company.cnpj) {
-        return { error: "Cadastre o CNPJ da empresa em Configurações antes de assinar." }
+      if (!cnpj) {
+        // A blocked company can't reach Configurações (app/(app)/* route
+        // group gates it out), so the error can't tell the user to go fix
+        // this themselves — point them at support instead.
+        return { error: "Não foi possível iniciar o pagamento: CNPJ da empresa não cadastrado. Entre em contato com o suporte para regularizar." }
       }
 
       const customer = await createAsaasCustomer({
         name: company.name,
         email: profile.email,
-        cpfCnpj: company.cnpj ?? undefined,
+        cpfCnpj: cnpj,
       })
       customerId = customer.id
-      await admin.from("companies").update({ asaas_customer_id: customerId }).eq("id", company.id)
+      const { error: customerUpdateError } = await admin
+        .from("companies")
+        .update({ asaas_customer_id: customerId })
+        .eq("id", company.id)
+      if (customerUpdateError) {
+        console.error("Failed to persist asaas_customer_id", { companyId: company.id, error: customerUpdateError })
+        return { error: "Não foi possível iniciar o pagamento. Tente novamente em instantes." }
+      }
     }
 
     const plan = company.plan as Plan
@@ -83,7 +99,14 @@ export async function startSubscriptionAction(
     // getOpenPaymentUrl throws below, the id is already saved, so a retry
     // takes the "already has asaas_subscription_id" branch above instead of
     // creating a second (duplicate-billing) subscription in Asaas.
-    await admin.from("companies").update({ asaas_subscription_id: subscription.id }).eq("id", company.id)
+    const { error: subscriptionUpdateError } = await admin
+      .from("companies")
+      .update({ asaas_subscription_id: subscription.id })
+      .eq("id", company.id)
+    if (subscriptionUpdateError) {
+      console.error("Failed to persist asaas_subscription_id", { companyId: company.id, error: subscriptionUpdateError })
+      return { error: "Não foi possível iniciar o pagamento. Tente novamente em instantes." }
+    }
 
     const checkoutUrl = await getOpenPaymentUrl(subscription.id)
     return { checkoutUrl }
