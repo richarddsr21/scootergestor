@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Users, Package, Boxes, ShoppingCart, Wrench, ShieldCheck,
-  DollarSign, BarChart3, Settings, ChevronLeft, ChevronRight, Zap, Truck,
+  DollarSign, BarChart3, Settings, ChevronLeft, ChevronRight, Truck,
   FileText, Landmark, X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -156,7 +156,16 @@ function SidebarLogo({ companyName, onClick }: { companyName?: string; onClick?:
   return (
     <Link href="/dashboard" onClick={onClick} className="flex items-center gap-2 overflow-hidden">
       <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand-teal text-brand-ink shadow-sm">
-        <Zap className="size-4" />
+        <svg viewBox="0 0 100 100" className="size-5" fill="currentColor" aria-hidden="true">
+          <path d="M21,27 L33,27 Q35,27 35,29.5 Q35,32 33,32 L21,32 Q19,32 19,29.5 Q19,27 21,27 Z"/>
+          <path d="M25.5,37 L31,37 L31,29 Q31,27.5 29.5,27.5 L27,27.5 Q25.5,27.5 25.5,29 Z"/>
+          <path d="M24,60 L60,60 Q62,60 62,62 L62,67 Q62,69 60,69 L24,69 Q22,69 22,67 L22,62 Q22,60 24,60 Z"/>
+          <path d="M30,35 C23,35 19,40 19,49 L19,64 C19,67 21,69 24,69 L35,69 L35,40 C35,37 33,35 30,35 Z"/>
+          <path d="M40,69 L40,50 C40,42 45,36 53,36 L62,36 C74,36 82,44 82,56 C82,62 81,66 80,69 Z"/>
+          <circle cx="25" cy="47" r="4" fill="var(--brand-teal)"/>
+          <circle cx="31" cy="71" r="8.4" fill="none" stroke="currentColor" strokeWidth="6"/>
+          <circle cx="72" cy="71" r="8.4" fill="none" stroke="currentColor" strokeWidth="6"/>
+        </svg>
       </div>
       <span className="truncate font-display font-bold text-sm text-sidebar-foreground tracking-wide">
         {companyName ?? "ScooterGestor"}
