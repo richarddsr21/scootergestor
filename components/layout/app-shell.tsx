@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { AppSidebar } from "@/components/layout/app-sidebar"
@@ -22,6 +23,7 @@ export function AppShell({
   profile,
   companyName,
   lowStockCount = 0,
+  trialDaysLeft = null,
   fontVariables,
 }: AppShellProps) {
   const [collapsed, setCollapsed] = React.useState(false)
@@ -56,6 +58,17 @@ export function AppShell({
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <AppHeader profile={profile} onMenuClick={() => setMobileNavOpen(true)} />
+
+        {trialDaysLeft !== null && (
+          <div className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-500/30 bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-700 dark:text-amber-300">
+            <span>
+              Seu período de teste acaba em {trialDaysLeft} dia{trialDaysLeft === 1 ? "" : "s"}.
+            </span>
+            <Link href="/assinatura" className="font-semibold underline underline-offset-2">
+              Assine o plano Pro
+            </Link>
+          </div>
+        )}
 
         <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-6">
           <AnimatePresence mode="wait" initial={false}>
