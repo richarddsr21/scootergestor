@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 import { PLAN_LABELS, ROLE_LABELS } from "@/lib/constants"
+import { AdminCompanyStatusButtons } from "@/components/admin/admin-company-status-buttons"
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return "—"
@@ -85,6 +86,7 @@ export default async function AdminCompanyPage({
             {company.trial_ends_at && (
               <div className="flex justify-between"><span className="text-muted-foreground">Trial até</span><span>{fmtDate(company.trial_ends_at)}</span></div>
             )}
+            <AdminCompanyStatusButtons companyId={company.id} />
           </CardContent>
         </Card>
 
