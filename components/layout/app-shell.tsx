@@ -13,6 +13,7 @@ interface AppShellProps {
   profile: Profile
   companyName?: string | null
   lowStockCount?: number
+  trialDaysLeft?: number | null
   fontVariables: string
 }
 

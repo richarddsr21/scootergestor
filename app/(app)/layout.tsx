@@ -32,6 +32,25 @@ export default async function AppLayout({
 
   if (!company) redirect("/onboarding")
 
+  const now = new Date()
+  const trialExpired =
+    company.status === "trial" &&
+    company.trial_ends_at !== null &&
+    new Date(company.trial_ends_at) < now
+  const overdueTooLong =
+    company.payment_overdue_since !== null &&
+    now.getTime() - new Date(company.payment_overdue_since).getTime() > 3 * 24 * 60 * 60 * 1000
+  const blocked = company.status === "suspended" || trialExpired || overdueTooLong
+
+  if (blocked) redirect("/assinatura")
+
+  let trialDaysLeft: number | null = null
+  if (company.status === "trial" && company.trial_ends_at) {
+    const msLeft = new Date(company.trial_ends_at).getTime() - now.getTime()
+    const daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000))
+    if (daysLeft <= 3) trialDaysLeft = daysLeft
+  }
+
   return (
     <AuthProvider
       profile={profile as Profile}
@@ -41,6 +60,7 @@ export default async function AppLayout({
         profile={profile as Profile}
         companyName={company.name}
         lowStockCount={lowStockCount ?? 0}
+        trialDaysLeft={trialDaysLeft}
         fontVariables={`${manrope.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       >
         {children}
