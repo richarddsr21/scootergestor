@@ -37,7 +37,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/contato") ||
     pathname.startsWith("/politica-de-privacidade") ||
     pathname.startsWith("/termos-de-uso") ||
-    pathname.startsWith("/aceitar-convite")
+    pathname.startsWith("/aceitar-convite") ||
+    pathname.startsWith("/acompanhar") ||
+    pathname.startsWith("/api/webhooks/")
 
   const isAuthRoute =
     pathname.startsWith("/login") ||
