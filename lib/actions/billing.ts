@@ -64,16 +64,16 @@ export async function startSubscriptionAction(
     let customerId = company.asaas_customer_id
     if (!customerId) {
       if (!cnpj) {
-        // A blocked company can't reach Configurações (app/(app)/* route
-        // group gates it out), so the error can't tell the user to go fix
-        // this themselves — point them at support instead.
-        return { error: "Não foi possível iniciar o pagamento: CNPJ da empresa não cadastrado. Entre em contato com o suporte para regularizar." }
+        // /assinatura is reached by both blocked companies (who can't reach
+        // Configurações, since app/(app)/* gates them out) and unblocked
+        // trial companies following the banner (who can) — cover both.
+        return { error: "Não foi possível iniciar o pagamento: CNPJ da empresa não cadastrado. Cadastre em Configurações → Empresa, ou entre em contato com o suporte se não conseguir acessar." }
       }
 
       const customer = await createAsaasCustomer({
         name: company.name,
         email: profile.email,
-        cpfCnpj: cnpj,
+        cpfCnpj: cnpj.replace(/\D/g, ""),
       })
       customerId = customer.id
       const { error: customerUpdateError } = await admin
