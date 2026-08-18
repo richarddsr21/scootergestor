@@ -1,6 +1,6 @@
 -- supabase/migrations/20260817000001_add_support_chat.sql
 
-CREATE TABLE support_conversations (
+CREATE TABLE IF NOT EXISTS support_conversations (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id            uuid NOT NULL UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
   company_last_read_at  timestamptz NOT NULL DEFAULT now(),
@@ -8,7 +8,7 @@ CREATE TABLE support_conversations (
   updated_at            timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE support_messages (
+CREATE TABLE IF NOT EXISTS support_messages (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id   uuid NOT NULL REFERENCES support_conversations(id) ON DELETE CASCADE,
   sender_type       text NOT NULL CHECK (sender_type IN ('company', 'admin')),
