@@ -804,6 +804,41 @@ export interface Database {
 
         Relationships: never[]
       }
+      support_conversations: {
+        Row: {
+          id: string
+          company_id: string
+          company_last_read_at: string
+          admin_last_read_at: string
+          updated_at: string
+        }
+        Insert: Omit<
+          Database["public"]["Tables"]["support_conversations"]["Row"],
+          "id" | "company_last_read_at" | "admin_last_read_at" | "updated_at"
+        > & {
+          company_last_read_at?: string
+          admin_last_read_at?: string
+        }
+        Update: Partial<
+          Pick<Database["public"]["Tables"]["support_conversations"]["Row"], "company_last_read_at" | "admin_last_read_at">
+        >
+
+        Relationships: never[]
+      }
+      support_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_type: string
+          sender_profile_id: string | null
+          body: string
+          created_at: string
+        }
+        Insert: Omit<Database["public"]["Tables"]["support_messages"]["Row"], "id" | "created_at">
+        Update: never
+
+        Relationships: never[]
+      }
     }
     Views: Record<never, never>
     Functions: {
