@@ -9,7 +9,7 @@ export default function NotFound() {
   const router = useRouter()
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center text-center px-4">
       <div className="mb-6 flex size-20 items-center justify-center rounded-2xl bg-muted">
         <Compass className="size-10 text-muted-foreground" />
       </div>
@@ -25,7 +25,7 @@ export default function NotFound() {
           Voltar
         </Button>
         <Button asChild size="sm">
-          <Link href="/dashboard">Ir para o Dashboard</Link>
+          <Link href="/">Ir para o início</Link>
         </Button>
       </div>
     </div>
