@@ -61,15 +61,18 @@ export function SupportChat() {
     }
   }, [conversationId])
 
+  React.useEffect(() => {
+    if (open && conversationId && messages === null) {
+      getConversationMessagesAction(conversationId).then((result) => {
+        setMessages(result.messages ?? [])
+      })
+    }
+  }, [open, conversationId, messages])
+
   function handleOpenChange(next: boolean) {
     setOpen(next)
     if (next) {
       setUnreadCount(0)
-      if (conversationId && messages === null) {
-        getConversationMessagesAction(conversationId).then((result) => {
-          setMessages(result.messages ?? [])
-        })
-      }
     }
   }
 
