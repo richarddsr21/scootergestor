@@ -1,16 +1,9 @@
-import { Manrope, Inter, JetBrains_Mono } from "next/font/google"
+import { Poppins, JetBrains_Mono } from "next/font/google"
 
-export const manrope = Manrope({
-  variable: "--font-manrope",
+export const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  display: "swap",
-})
-
-export const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 })
 

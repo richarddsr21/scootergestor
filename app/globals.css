@@ -124,8 +124,8 @@ body.app-theme {
   --avatar-amber:  #8D5B00;
   --avatar-coral:  #CE0000;
 
-  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
-  --font-display: var(--font-manrope), "Manrope", sans-serif;
+  --font-sans: var(--font-poppins), "Poppins", system-ui, sans-serif;
+  --font-display: var(--font-poppins), "Poppins", sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, monospace;
 
   /* Light (padrão do body.app-theme sozinho, sem .dark) */
@@ -209,8 +209,8 @@ html.dark body.app-theme {
   --radius-xl: calc(var(--radius) + 4px);
 
   /* Typography */
-  --font-sans: var(--font-outfit), "Outfit", system-ui, sans-serif;
-  --font-display: var(--font-syne), "Syne", sans-serif;
+  --font-sans: var(--font-poppins-public), "Poppins", system-ui, sans-serif;
+  --font-display: var(--font-poppins-public), "Poppins", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   /* Brand tokens → classes bg-brand-*, text-brand-* */

@@ -1,18 +1,13 @@
 import type { Metadata } from "next"
-import { Syne, Outfit, Geist_Mono } from "next/font/google"
+import { Poppins, Geist_Mono } from "next/font/google"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import "./globals.css"
 
-const syne = Syne({
-  variable: "--font-syne",
+const poppins = Poppins({
+  variable: "--font-poppins-public",
   subsets: ["latin"],
-  display: "swap",
-})
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 })
 
@@ -46,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${syne.variable} ${outfit.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${poppins.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           {children}
           <Toaster richColors position="top-right" />
