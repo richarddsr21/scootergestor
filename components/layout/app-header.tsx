@@ -19,6 +19,7 @@ import { ROLE_LABELS } from "@/lib/constants"
 import { logoutAction } from "@/lib/actions/auth"
 import type { Profile } from "@/types/app"
 import { NotificationBell } from "@/components/layout/notification-bell"
+import { SupportChat } from "@/components/layout/support-chat"
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
@@ -81,6 +82,7 @@ export function AppHeader({ profile, onMenuClick }: AppHeaderProps) {
 
       <div className="flex items-center gap-1.5 ml-auto">
         <ThemeToggle />
+        <SupportChat />
         <NotificationBell />
 
         {profile && (
