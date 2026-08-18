@@ -1,4 +1,5 @@
 import { getAuthUser, getAuthProfile } from "@/lib/supabase/queries"
+import { logoutAction } from "@/lib/actions/auth"
 import { redirect } from "next/navigation"
 
 export default async function AssinaturaLayout({
@@ -13,8 +14,16 @@ export default async function AssinaturaLayout({
   if (!profile) redirect("/onboarding")
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       {children}
+      <form action={logoutAction} className="mt-4">
+        <button
+          type="submit"
+          className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          Sair e entrar com outra conta
+        </button>
+      </form>
     </div>
   )
 }
