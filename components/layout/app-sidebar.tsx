@@ -187,7 +187,7 @@ export function AppSidebar({
       {/* Desktop — sidebar flutuante, sempre visível a partir de xl (1280px) */}
       <aside
         className={cn(
-          "my-4 ml-4 hidden flex-col rounded-2xl border border-sidebar-border bg-sidebar/90 shadow-[0_4px_24px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[width] duration-300 ease-in-out xl:flex",
+          "relative my-4 ml-4 hidden flex-col rounded-2xl border border-sidebar-border bg-sidebar/90 shadow-[0_4px_24px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[width] duration-300 ease-in-out xl:flex",
           collapsed ? "w-14" : "w-56"
         )}
       >
@@ -197,17 +197,15 @@ export function AppSidebar({
 
         <SidebarNav collapsed={collapsed} lowStockCount={lowStockCount} />
 
-        <div className="border-t border-sidebar-border p-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            className="size-9 w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
-            <span className="sr-only">{collapsed ? "Expandir menu" : "Recolher menu"}</span>
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggle}
+          className="absolute -right-3 top-5 z-10 size-6 rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
+          <span className="sr-only">{collapsed ? "Expandir menu" : "Recolher menu"}</span>
+        </Button>
       </aside>
 
       {/* Tablet (768–1279px) — drawer acionado pelo hambúrguer do AppHeader */}
