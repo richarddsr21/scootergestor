@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Shield, Building2, Home, MessageCircle } from "lucide-react"
 import { getAdminUnreadTotalAction } from "@/lib/actions/support"
+import { SupportNavBadge } from "@/components/admin/support-nav-badge"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -31,11 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link href="/admin/suporte">
                 <MessageCircle className="mr-1 h-4 w-4" />
                 Suporte
-                {!!unreadTotal && (
-                  <span className="ml-1.5 flex size-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white leading-none">
-                    {unreadTotal > 9 ? "9+" : unreadTotal}
-                  </span>
-                )}
+                <SupportNavBadge initialTotal={unreadTotal ?? 0} />
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>

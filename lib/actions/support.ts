@@ -211,7 +211,7 @@ export async function getSupportInboxAction(): Promise<InboxResult> {
     })
   )
 
-  return { items }
+  return { items: items.filter((item) => item.lastMessageAt !== null) }
 }
 
 export async function getAdminUnreadTotalAction(): Promise<{ error?: string; total?: number }> {

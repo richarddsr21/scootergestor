@@ -6,6 +6,7 @@ import { useTransition } from "react"
 import { Loader2, Send } from "lucide-react"
 import { formatDistanceToNow, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -82,13 +83,15 @@ export function ChatPanel({ conversationId, viewerSide, initialMessages }: ChatP
         const sent = result.message
         setMessages((prev) => (prev.some((m) => m.id === sent.id) ? prev : [...prev, sent]))
         setDraft("")
+      } else if (result.error) {
+        toast.error(result.error)
       }
     })
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <ScrollArea className="flex-1 px-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <ScrollArea className="flex-1 min-h-0 px-4">
         <div className="flex flex-col gap-3 py-4">
           {messages.length === 0 && (
             <p className="text-center text-sm text-muted-foreground py-8">

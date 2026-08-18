@@ -73,6 +73,8 @@ export function SupportChat() {
     setOpen(next)
     if (next) {
       setUnreadCount(0)
+    } else {
+      setMessages(null)
     }
   }
 

@@ -1,7 +1,7 @@
 // app/(admin)/admin/suporte/[id]/page.tsx
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { getConversationMessagesAction, markConversationReadAction } from "@/lib/actions/support"
+import { getConversationMessagesAction } from "@/lib/actions/support"
 import { ChatPanel } from "@/components/support/chat-panel"
 
 export default async function AdminSupportConversationPage({
@@ -27,7 +27,6 @@ export default async function AdminSupportConversationPage({
     .single()
 
   const { messages } = await getConversationMessagesAction(id)
-  await markConversationReadAction(id, "admin")
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col rounded-md border bg-background">
