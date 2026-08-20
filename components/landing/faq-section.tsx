@@ -4,7 +4,7 @@ import * as React from "react"
 import { ChevronDown, MessageCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const WA_LINK = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Tenho uma dúvida sobre o ScooterGestor.")}`
+const WA_LINK = `https://wa.me/5521988729352?text=${encodeURIComponent("Olá! Tenho uma dúvida sobre o ScooterGestor.")}`
 
 const faqs = [
   {

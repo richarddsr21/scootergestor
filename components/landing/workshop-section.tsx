@@ -1,6 +1,6 @@
 import { MessageCircle, Zap } from "lucide-react"
 
-const WA_LINK = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Tenho uma loja de scooters elétricas e quero agendar uma demonstração do ScooterGestor.")}`
+const WA_LINK = `https://wa.me/5521988729352?text=${encodeURIComponent("Olá! Tenho uma loja de scooters elétricas e quero agendar uma demonstração do ScooterGestor.")}`
 
 const flowSteps = [
   { label: "Cliente chega", color: "bg-zinc-600 text-zinc-200" },

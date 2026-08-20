@@ -1,8 +1,8 @@
 import Link from "next/link"
 import { Zap, MessageCircle, Mail, MapPin, Shield, Clock, Star } from "lucide-react"
 
-const WA_LINK = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Quero saber mais sobre o ScooterGestor.")}`
-const WA_DEMO = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Tenho uma loja de scooters elétricas e quero agendar uma demonstração do ScooterGestor.")}`
+const WA_LINK = `https://wa.me/5521988729352?text=${encodeURIComponent("Olá! Quero saber mais sobre o ScooterGestor.")}`
+const WA_DEMO = `https://wa.me/5521988729352?text=${encodeURIComponent("Olá! Tenho uma loja de scooters elétricas e quero agendar uma demonstração do ScooterGestor.")}`
 
 const modules = [
   { label: "Clientes", href: "#funcionalidades" },
@@ -80,7 +80,7 @@ export function LandingFooter() {
                 className="flex items-center gap-2 text-sm hover:text-white transition-colors group"
               >
                 <MessageCircle className="size-4 text-brand-green" />
-                WhatsApp: (21) 9 9999-9999
+                WhatsApp: (21) 9 8872-9352
               </a>
               <a
                 href="mailto:contato@scootergestor.com.br"

@@ -1,7 +1,7 @@
 export const APP_NAME = "ScooterGestor"
 export const APP_URL = "https://app.scootergestor.com.br"
-export const LANDING_URL = "https://scootergestor.com.br"
-export const WHATSAPP_NUMBER = "5521999999999"
+export const LANDING_URL = "https://scootergestor.vercel.app"
+export const WHATSAPP_NUMBER = "5521988729352"
 export const SUPPORT_EMAIL = "suporte@scootergestor.com.br"
 
 export const PLANS = ["pro"] as const

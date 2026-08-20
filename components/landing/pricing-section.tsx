@@ -1,7 +1,7 @@
 import { Check, Star, Zap, CalendarCheck, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const WA_DEMO = `https://wa.me/5521999999999?text=${encodeURIComponent("Olá! Tenho uma loja de scooters elétricas e quero agendar uma demonstração do ScooterGestor.")}`
+const WA_DEMO = `https://wa.me/5521988729352?text=${encodeURIComponent("Olá! Tenho uma loja de scooters elétricas e quero agendar uma demonstração do ScooterGestor.")}`
 
 const plans = [
   {
