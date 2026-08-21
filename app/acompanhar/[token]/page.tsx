@@ -74,9 +74,9 @@ export default async function TrackingPage({
   const storeName = os.store_name ?? "ScooterGestor"
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-white">
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <Zap className="size-4" />
@@ -87,7 +87,7 @@ export default async function TrackingPage({
 
       <main className="max-w-lg mx-auto px-4 py-8 space-y-6">
         {/* OS card */}
-        <div className="rounded-2xl border bg-white shadow-sm p-6 space-y-4">
+        <div className="rounded-2xl border bg-card shadow-sm p-6 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Ordem de Serviço</p>
@@ -106,7 +106,7 @@ export default async function TrackingPage({
               </span>
             )}
             {isCanceled && (
-              <span className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-600">
+              <span className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
                 Cancelada
               </span>
             )}
@@ -123,7 +123,7 @@ export default async function TrackingPage({
               {os.total != null && os.total > 0 && (
                 <div className="text-sm">
                   <span className="text-muted-foreground text-xs block">Valor</span>
-                  <span className="font-semibold text-emerald-600">{fmt(os.total)}</span>
+                  <span className="font-semibold text-emerald-400">{fmt(os.total)}</span>
                 </div>
               )}
             </div>
@@ -146,7 +146,7 @@ export default async function TrackingPage({
 
         {/* Progress timeline */}
         {!isCanceled && (
-          <div className="rounded-2xl border bg-white shadow-sm p-6">
+          <div className="rounded-2xl border bg-card shadow-sm p-6">
             <h2 className="text-sm font-semibold mb-5">Progresso da sua OS</h2>
             <ol className="space-y-0">
               {PROGRESS_SLUGS.map((step, idx) => {
@@ -162,7 +162,7 @@ export default async function TrackingPage({
                             ? isCurrent
                               ? "border-primary bg-primary text-white"
                               : "border-emerald-500 bg-emerald-500 text-white"
-                            : "border-slate-200 bg-white text-slate-300"
+                            : "border-border bg-card text-muted-foreground/50"
                         }`}
                       >
                         {isDone && !isCurrent ? (
@@ -174,7 +174,7 @@ export default async function TrackingPage({
                       {idx < PROGRESS_SLUGS.length - 1 && (
                         <div
                           className={`w-0.5 flex-1 my-1 min-h-[20px] ${
-                            idx < currentSlugIndex ? "bg-emerald-400" : "bg-slate-200"
+                            idx < currentSlugIndex ? "bg-emerald-400" : "bg-border"
                           }`}
                         />
                       )}
@@ -187,7 +187,7 @@ export default async function TrackingPage({
                             ? "font-semibold text-foreground"
                             : isDone
                             ? "text-muted-foreground"
-                            : "text-slate-400"
+                            : "text-muted-foreground/50"
                         }`}
                       >
                         {step.label}
@@ -206,17 +206,17 @@ export default async function TrackingPage({
         )}
 
         {isCanceled && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 p-5 text-center">
-            <p className="text-sm font-medium text-red-700">
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-center">
+            <p className="text-sm font-medium text-red-300">
               Esta ordem de serviço foi cancelada.
             </p>
-            <p className="text-xs text-red-500 mt-1">Entre em contato com a loja para mais informações.</p>
+            <p className="text-xs text-red-400/80 mt-1">Entre em contato com a loja para mais informações.</p>
           </div>
         )}
 
         {/* Contact card */}
         {os.store_whatsapp && (
-          <div className="rounded-2xl border bg-white shadow-sm p-5 flex items-center justify-between gap-4">
+          <div className="rounded-2xl border bg-card shadow-sm p-5 flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Dúvidas?</p>
               <p className="text-xs text-muted-foreground mt-0.5">Fale com {storeName}</p>
