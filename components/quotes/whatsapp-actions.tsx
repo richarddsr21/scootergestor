@@ -30,6 +30,7 @@ interface Props {
   trackingToken?: string
   osId?: string
   autoOpen?: boolean
+  greeting: string
 }
 
 function cleanPhone(raw: string): string {
@@ -47,8 +48,7 @@ function fmtDate(d: string) {
 }
 
 function buildMessage(params: {
-  customerName: string
-  quoteNumber: string
+  greeting: string
   subtotal: number
   discount: number
   total: number
@@ -60,7 +60,7 @@ function buildMessage(params: {
   trackingUrl: string | null
   storeName: string
 }): string {
-  const { customerName, quoteNumber, subtotal, discount, total, items, validUntil, notes, vehicle, orderNumber, trackingUrl, storeName } = params
+  const { greeting, subtotal, discount, total, items, validUntil, notes, vehicle, orderNumber, trackingUrl, storeName } = params
 
   const itemLines = items.map(i => {
     const qty = i.quantity % 1 === 0 ? String(Math.round(i.quantity)) : String(i.quantity)
@@ -70,11 +70,7 @@ function buildMessage(params: {
 
   const sep = "-------------------"
 
-  const lines: string[] = [
-    `Olá, ${customerName}! 👋`,
-    "",
-    `Seu orçamento *${quoteNumber}* está pronto! Confira os detalhes:`,
-  ]
+  const lines: string[] = [greeting]
 
   if (vehicle) lines.push(`🛵 Veículo: ${vehicle}`)
   if (orderNumber) lines.push(`📋 OS vinculada: ${orderNumber}`)
@@ -119,6 +115,7 @@ export function WhatsAppActions({
   trackingToken,
   osId,
   autoOpen = false,
+  greeting,
 }: Props) {
   const router = useRouter()
   const triggered = useRef(false)
@@ -126,7 +123,7 @@ export function WhatsAppActions({
   const vehicle = [vehicleBrand, vehicleModel].filter(Boolean).join(" ")
   const trackingUrl = trackingToken ? `${appUrl}/acompanhar/${trackingToken}` : null
 
-  const message = buildMessage({ customerName, quoteNumber, subtotal, discount, total, items, validUntil, notes, vehicle, orderNumber, trackingUrl, storeName })
+  const message = buildMessage({ greeting, subtotal, discount, total, items, validUntil, notes, vehicle, orderNumber, trackingUrl, storeName })
 
   function openWhatsApp() {
     if (!customerWhatsapp) return

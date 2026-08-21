@@ -11,7 +11,8 @@ import { OrcamentoExportButton } from "@/components/quotes/orcamento-export-butt
 import { WhatsAppActions } from "@/components/quotes/whatsapp-actions"
 import { QuoteItemsSection } from "@/components/quotes/quote-items-section"
 import { QuoteStatusActions } from "@/components/quotes/quote-status-actions"
-import { APP_URL } from "@/lib/constants"
+import { APP_URL, DEFAULT_MESSAGE_TEMPLATES } from "@/lib/constants"
+import { renderMessageTemplate } from "@/lib/whatsapp-template"
 
 const STATUS_LABELS: Record<string, string> = {
   pendente: "Pendente",
@@ -36,10 +37,13 @@ function fmtDate(d: string | null | undefined) {
 
 export default async function QuoteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ criada?: string }>
 }) {
   const { id } = await params
+  const { criada } = await searchParams
   const user = await getAuthUser()
   if (!user) redirect("/login")
 
@@ -54,6 +58,7 @@ export default async function QuoteDetailPage({
     { data: items },
     { data: products },
     { data: settings },
+    { data: template },
   ] = await Promise.all([
     supabase.from("quotes")
       .select("*, customers(id, name, phone, whatsapp), service_orders(id, order_number, tracking_token)")
@@ -68,6 +73,12 @@ export default async function QuoteDetailPage({
     supabase.from("company_settings")
       .select("business_name, whatsapp")
       .eq("company_id", cid).maybeSingle(),
+    supabase.from("message_templates")
+      .select("content")
+      .eq("company_id", cid)
+      .eq("trigger_key", "orcamento_pronto")
+      .eq("status", "active")
+      .maybeSingle(),
   ])
 
   if (!quote) notFound()
@@ -76,6 +87,16 @@ export default async function QuoteDetailPage({
   const customer = q.customers
   const os = q.service_orders
   const isPending = q.status === "pendente"
+
+  const templateContent = template?.content
+    ?? DEFAULT_MESSAGE_TEMPLATES.find((t) => t.trigger_key === "orcamento_pronto")!.content
+
+  const greeting = renderMessageTemplate(templateContent, {
+    cliente: customer?.name ?? "Cliente",
+    numero_os: q.quote_number,
+    valor: new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2 }).format(q.total ?? 0),
+    nome_loja: (settings as any)?.business_name ?? "ScooterGestor",
+  })
 
 
   return (
@@ -114,6 +135,8 @@ export default async function QuoteDetailPage({
           orderNumber={os?.order_number}
           trackingToken={os?.tracking_token}
           osId={os?.id}
+          greeting={greeting}
+          autoOpen={criada === "1"}
         />
       )}
 

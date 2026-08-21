@@ -30,6 +30,7 @@ export interface ReceiptProps {
   storeCnpj: string | null
   storePhone: string | null
   storeAddress?: string | null
+  whatsappGreeting?: string | null
 }
 
 function fmtNum(n: number) {
@@ -170,5 +171,7 @@ export function buildPrintHTML(receipt: string): string {
 }
 
 export function buildWhatsAppMessage(p: ReceiptProps): string {
-  return "```\n" + buildThermalReceipt(p) + "\n```"
+  const greeting = p.whatsappGreeting?.trim()
+  const receiptBlock = "```\n" + buildThermalReceipt(p) + "\n```"
+  return greeting ? `${greeting}\n\n${receiptBlock}` : receiptBlock
 }

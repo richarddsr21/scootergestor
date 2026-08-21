@@ -123,6 +123,20 @@ export async function cancelRevisionAction(scheduleId: string): Promise<ActionSt
   return { success: "Revisão cancelada" }
 }
 
+export async function markRevisionReminderSentAction(reminderId: string): Promise<ActionState> {
+  const ctx = await getCtx()
+  if (!ctx) return { error: "Não autenticado" }
+
+  const { error } = await ctx.supabase
+    .from("revision_reminders")
+    .update({ sent_at: new Date().toISOString() })
+    .eq("id", reminderId)
+    .eq("company_id", ctx.profile.company_id)
+
+  if (error) return { error: "Erro ao marcar lembrete" }
+  return { success: "Lembrete marcado como concluído" }
+}
+
 export async function deleteRevisionReminderAction(reminderId: string): Promise<ActionState> {
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }

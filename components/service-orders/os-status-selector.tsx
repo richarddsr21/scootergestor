@@ -4,7 +4,7 @@ import { useTransition } from "react"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { updateServiceOrderStatusAction } from "@/lib/actions/service-orders"
-import { APP_URL } from "@/lib/constants"
+import { cleanWhatsappPhone } from "@/lib/whatsapp-template"
 
 interface Status {
   id: string
@@ -18,47 +18,14 @@ interface Props {
   osId: string
   currentStatusId: string
   statuses: Status[]
-  customerName?: string
   customerWhatsapp?: string | null
-  orderNumber?: string
-  trackingToken?: string | null
-  storeName?: string
-}
-
-function cleanPhone(raw: string) {
-  const digits = raw.replace(/\D/g, "")
-  return digits.startsWith("55") && digits.length >= 12 ? digits : `55${digits}`
-}
-
-function buildStatusMessage(
-  statusName: string,
-  customerName: string,
-  orderNumber: string,
-  trackingToken: string | null,
-  storeName: string
-) {
-  const trackingLine = trackingToken
-    ? `\nAcompanhe em tempo real:\n${APP_URL}/acompanhar/${trackingToken}\n`
-    : ""
-  return (
-    `Olá, ${customerName}! 👋\n\n` +
-    `Atualização da sua scooter:\n` +
-    `🔧 OS: ${orderNumber}\n` +
-    `📋 Novo status: *${statusName}*\n` +
-    trackingLine +
-    `\n— ${storeName}`
-  )
 }
 
 export function OsStatusSelector({
   osId,
   currentStatusId,
   statuses,
-  customerName,
   customerWhatsapp,
-  orderNumber,
-  trackingToken,
-  storeName = "ScooterGestor",
 }: Props) {
   const [isPending, startTransition] = useTransition()
 
@@ -71,12 +38,9 @@ export function OsStatusSelector({
       }
       toast.success(result.success ?? "Status atualizado")
 
-      if (customerWhatsapp && customerName && orderNumber) {
-        const statusObj = statuses.find((s) => s.id === statusId)
-        if (statusObj) {
-          const msg = buildStatusMessage(statusObj.name, customerName, orderNumber, trackingToken ?? null, storeName)
-          window.open(`https://wa.me/${cleanPhone(customerWhatsapp)}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer")
-        }
+      if (customerWhatsapp && result.whatsappMessage) {
+        const phone = cleanWhatsappPhone(customerWhatsapp)
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(result.whatsappMessage)}`, "_blank", "noopener,noreferrer")
       }
     })
   }

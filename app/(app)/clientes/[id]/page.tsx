@@ -10,8 +10,10 @@ import { VehiclesSection } from "@/components/customers/vehicles-section"
 import { ClienteDetalheExportButton } from "@/components/customers/cliente-detalhe-export-button"
 import { KpiTile } from "@/components/dashboard/kpi-tile"
 import { StatusPill } from "@/components/shared/status-pill"
-import { priorityZone, priorityLabel } from "@/lib/constants"
+import { priorityZone, priorityLabel, DEFAULT_MESSAGE_TEMPLATES } from "@/lib/constants"
 import { initials, avatarColorName, AVATAR_BG, AVATAR_BORDER, AVATAR_ICON_TEXT } from "@/lib/avatar"
+import { RevisionSection } from "@/components/revisions/revision-section"
+import { getCustomerRevisionAction } from "@/lib/actions/revisions"
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
@@ -45,6 +47,7 @@ export default async function ClienteDetailPage({
     { data: vehicles },
     { data: serviceOrders },
     { data: settings },
+    { data: revisaoTemplate },
   ] = await Promise.all([
     supabase.from("customers").select("*").eq("id", id).eq("company_id", cid).single(),
     supabase.from("vehicles").select("*").eq("customer_id", id).eq("company_id", cid).order("created_at"),
@@ -55,12 +58,22 @@ export default async function ClienteDetailPage({
       .eq("company_id", cid)
       .order("created_at", { ascending: false })
       .limit(50),
-    supabase.from("company_settings").select("business_name").eq("company_id", cid).maybeSingle(),
+    supabase.from("company_settings").select("business_name, whatsapp, phone").eq("company_id", cid).maybeSingle(),
+    supabase.from("message_templates")
+      .select("content")
+      .eq("company_id", cid)
+      .eq("trigger_key", "lembrete_revisao")
+      .eq("status", "active")
+      .maybeSingle(),
   ])
 
   if (!customer) notFound()
 
+  const revision = await getCustomerRevisionAction(id)
+
   const companyName = (settings as any)?.business_name ?? "ScooterGestor"
+  const revisaoMessageTemplate = revisaoTemplate?.content
+    ?? DEFAULT_MESSAGE_TEMPLATES.find((t) => t.trigger_key === "lembrete_revisao")!.content
   const totalGasto = (serviceOrders ?? []).reduce((sum, os: any) => sum + (os.total ?? 0), 0)
   const osAbertasCount = (serviceOrders ?? []).filter((os: any) => !os.delivered_at).length
   const color = avatarColorName(customer.name)
@@ -200,6 +213,16 @@ export default async function ClienteDetailPage({
           </Card>
 
           <VehiclesSection vehicles={vehicles ?? []} customerId={id} iconColorClass={AVATAR_ICON_TEXT[color]} />
+
+          <RevisionSection
+            customerId={id}
+            initialRevision={revision}
+            customerName={customer.name}
+            customerWhatsapp={customer.whatsapp ?? customer.phone ?? null}
+            storeName={companyName}
+            storePhone={(settings as any)?.whatsapp ?? (settings as any)?.phone ?? null}
+            messageTemplate={revisaoMessageTemplate}
+          />
         </div>
 
         {/* OS history */}

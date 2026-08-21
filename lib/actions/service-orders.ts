@@ -6,6 +6,23 @@ import { z } from "zod"
 import type { ActionState } from "./auth"
 import { insertCashMovementsForPayment } from "./cash"
 import { nextServiceOrderNumber } from "@/lib/order-numbers"
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/constants"
+import { renderMessageTemplate } from "@/lib/whatsapp-template"
+
+const STATUS_SLUG_TO_TRIGGER: Record<string, string> = {
+  "em-manutencao": "os_manutencao",
+  "aguardando-peca": "os_aguardando_peca",
+  "concluida": "os_concluida",
+}
+
+function fmtCurrencyValue(n: number) {
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2 }).format(n)
+}
+
+function fmtShortDate(d: string | null) {
+  if (!d) return "—"
+  return new Date(d).toLocaleDateString("pt-BR")
+}
 
 async function getCtx() {
   const supabase = await createClient()
@@ -116,13 +133,13 @@ export async function createServiceOrderAction(
 export async function updateServiceOrderStatusAction(
   osId: string,
   statusId: string
-): Promise<ActionState> {
+): Promise<ActionState & { whatsappMessage?: string | null }> {
   const ctx = await getCtx()
   if (!ctx) return { error: "Não autenticado" }
 
   const { data: status, error: statusErr } = await ctx.supabase
     .from("service_order_statuses")
-    .select("is_final, slug")
+    .select("name, is_final, slug")
     .eq("id", statusId)
     .eq("company_id", ctx.profile.company_id)
     .maybeSingle()
@@ -148,7 +165,52 @@ export async function updateServiceOrderStatusAction(
   revalidatePath(`/oficina/${osId}`)
   revalidatePath("/oficina")
   revalidatePath("/oficina/orcamentos")
-  return { success: "Status atualizado" }
+
+  const triggerKey = status?.slug ? STATUS_SLUG_TO_TRIGGER[status.slug] : undefined
+  let whatsappMessage: string | null = null
+
+  if (triggerKey) {
+    const [{ data: os }, { data: template }, { data: settings }] = await Promise.all([
+      ctx.supabase
+        .from("service_orders")
+        .select("order_number, expected_delivery_at, total, customers(name, whatsapp, phone)")
+        .eq("id", osId)
+        .eq("company_id", ctx.profile.company_id)
+        .maybeSingle(),
+      ctx.supabase
+        .from("message_templates")
+        .select("content")
+        .eq("company_id", ctx.profile.company_id)
+        .eq("trigger_key", triggerKey)
+        .eq("status", "active")
+        .maybeSingle(),
+      ctx.supabase
+        .from("company_settings")
+        .select("business_name, whatsapp, phone")
+        .eq("company_id", ctx.profile.company_id)
+        .maybeSingle(),
+    ])
+
+    const customer = (os as any)?.customers
+    const customerWhatsapp = customer?.whatsapp ?? customer?.phone ?? null
+
+    if (os && customer && customerWhatsapp) {
+      const content = template?.content
+        ?? DEFAULT_MESSAGE_TEMPLATES.find((t) => t.trigger_key === triggerKey)!.content
+
+      whatsappMessage = renderMessageTemplate(content, {
+        cliente: customer.name ?? "Cliente",
+        numero_os: (os as any).order_number,
+        valor: fmtCurrencyValue((os as any).total ?? 0),
+        status: status?.name ?? "",
+        nome_loja: (settings as any)?.business_name ?? "ScooterGestor",
+        telefone_loja: (settings as any)?.whatsapp ?? (settings as any)?.phone ?? "",
+        data_previsao: fmtShortDate((os as any).expected_delivery_at),
+      })
+    }
+  }
+
+  return { success: "Status atualizado", whatsappMessage }
 }
 
 const itemSchema = z.object({

@@ -14,6 +14,8 @@ import { SaleReceiptButtons } from "@/components/sales/whatsapp-receipt-button"
 import { PAYMENT_METHOD_LABELS } from "@/lib/constants"
 import { RevisionSection } from "@/components/revisions/revision-section"
 import { getCustomerRevisionAction } from "@/lib/actions/revisions"
+import { DEFAULT_MESSAGE_TEMPLATES } from "@/lib/constants"
+import { renderMessageTemplate } from "@/lib/whatsapp-template"
 
 function fmt(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n)
@@ -37,7 +39,7 @@ export default async function VendaDetailPage({
   const cid = profile.company_id
   const supabase = await createClient()
 
-  const [{ data: sale }, { data: items }, { data: payments }, { data: settings }] = await Promise.all([
+  const [{ data: sale }, { data: items }, { data: payments }, { data: settings }, { data: template }] = await Promise.all([
     supabase.from("sales")
       .select("*, customers(id, name, phone, whatsapp)")
       .eq("id", id).eq("company_id", cid).single(),
@@ -52,12 +54,31 @@ export default async function VendaDetailPage({
     supabase.from("company_settings")
       .select("business_name, cnpj, phone, whatsapp, address, city, state")
       .eq("company_id", cid).maybeSingle(),
+    supabase.from("message_templates")
+      .select("trigger_key, content")
+      .eq("company_id", cid)
+      .in("trigger_key", ["agradecimento_compra", "lembrete_revisao"])
+      .eq("status", "active"),
   ])
 
   if (!sale) notFound()
 
   const customerId = (sale as any).customers?.id ?? null
   const revision = customerId ? await getCustomerRevisionAction(customerId) : null
+
+  function templateFor(triggerKey: string) {
+    return (template ?? []).find((t) => t.trigger_key === triggerKey)?.content
+      ?? DEFAULT_MESSAGE_TEMPLATES.find((t) => t.trigger_key === triggerKey)!.content
+  }
+
+  const greetingTemplate = templateFor("agradecimento_compra")
+  const revisaoMessageTemplate = templateFor("lembrete_revisao")
+
+  const whatsappGreeting = renderMessageTemplate(greetingTemplate, {
+    cliente: (sale as any).customers?.name ?? "Cliente",
+    nome_loja: settings?.business_name ?? "ScooterGestor",
+    telefone_loja: settings?.whatsapp ?? settings?.phone ?? "",
+  })
 
   const STATUS_LABELS: Record<string, string> = { concluida: "Concluída", cancelada: "Cancelada", pendente: "Pendente" }
   const STATUS_VARIANTS: Record<string, "default" | "destructive" | "secondary"> = {
@@ -102,6 +123,7 @@ export default async function VendaDetailPage({
               storeCnpj={settings?.cnpj ?? null}
               storePhone={settings?.whatsapp ?? settings?.phone ?? null}
               storeAddress={[settings?.address, settings?.city, settings?.state].filter(Boolean).join(", ") || null}
+              whatsappGreeting={whatsappGreeting}
             />
 
           )}
@@ -226,6 +248,11 @@ export default async function VendaDetailPage({
               customerId={customerId}
               initialRevision={revision}
               sourceSaleId={id}
+              customerName={(sale as any).customers?.name ?? "Cliente"}
+              customerWhatsapp={(sale as any).customers?.whatsapp ?? (sale as any).customers?.phone ?? null}
+              storeName={settings?.business_name ?? "ScooterGestor"}
+              storePhone={settings?.whatsapp ?? settings?.phone ?? null}
+              messageTemplate={revisaoMessageTemplate}
             />
           )}
         </div>

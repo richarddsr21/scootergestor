@@ -89,9 +89,9 @@ export async function getNotificationsAction(): Promise<NotificationsData> {
       .eq("company_id", cid)
       .eq("notify_store", true)
       .is("sent_at", null)
-      .lte("remind_on", today)
+      .lte("remind_on", sevenDaysAhead)
       .order("remind_on", { ascending: true })
-      .limit(5),
+      .limit(20),
   ])
 
   const items: NotificationItem[] = []
@@ -171,8 +171,8 @@ export async function getNotificationsAction(): Promise<NotificationsData> {
     items.push({
       id: `rev-${r.id}`,
       type: "revision_due",
-      title: "Revisão pendente",
-      description: `${customer?.name ?? "—"} — lembrete de revisão`,
+      title: customer?.name ?? "Cliente",
+      description: "Lembrete de revisão pendente",
       href: customerId ? `/clientes/${customerId}` : "/clientes",
       date: (r as any).remind_on,
     })

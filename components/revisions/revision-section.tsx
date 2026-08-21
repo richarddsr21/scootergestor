@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Bell, Plus, X, BellOff } from "lucide-react"
+import { Bell, Plus, X, BellOff, MessageCircle, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -32,8 +32,11 @@ import {
   addRevisionReminderAction,
   cancelRevisionAction,
   deleteRevisionReminderAction,
+  markRevisionReminderSentAction,
   type RevisionSchedule,
+  type RevisionReminder,
 } from "@/lib/actions/revisions"
+import { renderMessageTemplate, cleanWhatsappPhone } from "@/lib/whatsapp-template"
 
 function fmtDate(d: string) {
   const [y, m, day] = d.split("-")
@@ -135,16 +138,98 @@ function AddReminderDialog({
   )
 }
 
+function ReminderActions({
+  reminder,
+  customerName,
+  customerWhatsapp,
+  storeName,
+  storePhone,
+  messageTemplate,
+  disabled,
+  onSent,
+}: {
+  reminder: RevisionReminder
+  customerName: string
+  customerWhatsapp: string | null
+  storeName: string
+  storePhone: string | null
+  messageTemplate: string
+  disabled: boolean
+  onSent: () => void
+}) {
+  const [isPending, startTransition] = useTransition()
+
+  function markSent() {
+    startTransition(async () => {
+      const result = await markRevisionReminderSentAction(reminder.id)
+      if (result.error) toast.error(result.error)
+      else onSent()
+    })
+  }
+
+  function handleSendWhatsApp() {
+    const message = renderMessageTemplate(messageTemplate, {
+      cliente: customerName,
+      nome_loja: storeName,
+      telefone_loja: storePhone ?? "",
+    })
+    window.open(
+      `https://wa.me/${cleanWhatsappPhone(customerWhatsapp!)}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer"
+    )
+    markSent()
+  }
+
+  if (reminder.notify_customer && customerWhatsapp) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-6 text-xs gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+        disabled={disabled || isPending}
+        onClick={handleSendWhatsApp}
+      >
+        <MessageCircle className="h-3 w-3" />
+        Enviar no WhatsApp
+      </Button>
+    )
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-6 text-xs gap-1 text-muted-foreground"
+      disabled={disabled || isPending}
+      onClick={markSent}
+    >
+      <Check className="h-3 w-3" />
+      Marcar como feito
+    </Button>
+  )
+}
+
 export function RevisionSection({
   customerId,
   initialRevision,
   sourceOsId,
   sourceSaleId,
+  customerName,
+  customerWhatsapp,
+  storeName,
+  storePhone,
+  messageTemplate,
 }: {
   customerId: string
   initialRevision: RevisionSchedule | null
   sourceOsId?: string | null
   sourceSaleId?: string | null
+  customerName: string
+  customerWhatsapp: string | null
+  storeName: string
+  storePhone: string | null
+  messageTemplate: string
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -209,24 +294,36 @@ export function RevisionSection({
             ) : (
               <div className="space-y-1.5">
                 {pendingReminders.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-medium">{fmtDate(r.remind_on)}</span>
-                      <span className="text-xs text-muted-foreground">
+                  <div key={r.id} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-medium shrink-0">{fmtDate(r.remind_on)}</span>
+                      <span className="text-xs text-muted-foreground truncate">
                         {[r.notify_customer && "Cliente", r.notify_store && "Loja"]
                           .filter(Boolean)
                           .join(" · ")}
                       </span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                      disabled={isPending}
-                      onClick={() => handleDelete(r.id)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <ReminderActions
+                        reminder={r}
+                        customerName={customerName}
+                        customerWhatsapp={customerWhatsapp}
+                        storeName={storeName}
+                        storePhone={storePhone}
+                        messageTemplate={messageTemplate}
+                        disabled={isPending}
+                        onSent={refresh}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        disabled={isPending}
+                        onClick={() => handleDelete(r.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 {sentReminders.map((r) => (

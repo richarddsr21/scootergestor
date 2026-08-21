@@ -257,4 +257,9 @@ export const DEFAULT_MESSAGE_TEMPLATES = [
     trigger_key: "agradecimento_compra",
     content: "Olá, {{cliente}}! Obrigado pela sua compra na {{nome_loja}}! Qualquer dúvida, estamos à disposição.\n\n{{telefone_loja}}",
   },
+  {
+    name: "Lembrete de Revisão",
+    trigger_key: "lembrete_revisao",
+    content: "Olá, {{cliente}}! Faz um tempo desde sua última revisão na {{nome_loja}} 🛵\n\nQue tal agendar uma manutenção preventiva pra deixar sua scooter em dia?\n\nQualquer dúvida, é só chamar!\n{{telefone_loja}}",
+  },
 ]

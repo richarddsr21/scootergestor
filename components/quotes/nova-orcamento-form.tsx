@@ -60,7 +60,7 @@ export function NovaOrcamentoForm({ customers: initialCustomers, products }: Pro
   useEffect(() => {
     if (state.success) {
       toast.success(state.success)
-      if ((state as any).id) router.push(`/oficina/orcamentos/${(state as any).id}`)
+      if ((state as any).id) router.push(`/oficina/orcamentos/${(state as any).id}?criada=1`)
     }
     if (state.error) toast.error(state.error)
   }, [state])

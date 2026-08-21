@@ -57,6 +57,7 @@ export default async function OsDetailPage({
     { data: existingQuote },
     { data: settings },
     { data: payments },
+    { data: revisaoTemplate },
   ] = await Promise.all([
     supabase.from("service_orders")
       .select("*, customers(id, name, phone, whatsapp), service_order_statuses(id, name, color), vehicles(type, brand, model), profiles(name)")
@@ -93,9 +94,18 @@ export default async function OsDetailPage({
       .select("method, amount, fee_amount, fee_absorbed, installments")
       .eq("service_order_id", id).eq("company_id", cid)
       .order("created_at"),
+    supabase.from("message_templates")
+      .select("content")
+      .eq("company_id", cid)
+      .eq("trigger_key", "lembrete_revisao")
+      .eq("status", "active")
+      .maybeSingle(),
   ])
 
   if (!os) notFound()
+
+  const revisaoMessageTemplate = revisaoTemplate?.content
+    ?? DEFAULT_MESSAGE_TEMPLATES.find((t) => t.trigger_key === "lembrete_revisao")!.content
 
   const customer = (os as any).customers
   const revision = customer?.id ? await getCustomerRevisionAction(customer.id) : null
@@ -244,11 +254,7 @@ export default async function OsDetailPage({
                 osId={id}
                 currentStatusId={status?.id ?? ""}
                 statuses={statuses ?? []}
-                customerName={customer?.name}
                 customerWhatsapp={customer?.whatsapp ?? customer?.phone}
-                orderNumber={os.order_number}
-                trackingToken={(os as any).tracking_token ?? null}
-                storeName={(settings as any)?.business_name ?? "ScooterGestor"}
               />
             </CardContent>
           </Card>
@@ -322,6 +328,11 @@ export default async function OsDetailPage({
               customerId={customer.id}
               initialRevision={revision}
               sourceOsId={id}
+              customerName={customer.name ?? "Cliente"}
+              customerWhatsapp={customer.whatsapp ?? customer.phone ?? null}
+              storeName={(settings as any)?.business_name ?? "ScooterGestor"}
+              storePhone={(settings as any)?.whatsapp ?? (settings as any)?.phone ?? null}
+              messageTemplate={revisaoMessageTemplate}
             />
           )}
         </div>
