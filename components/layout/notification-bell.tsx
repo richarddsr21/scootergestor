@@ -7,7 +7,6 @@ import { formatDistanceToNow, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { getNotificationsAction, type NotificationItem } from "@/lib/actions/notifications"
 
@@ -76,8 +75,10 @@ function NotificationRow({ item, onClose }: { item: NotificationItem; onClose: (
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-snug truncate">{item.title}</p>
-        <p className="text-xs text-muted-foreground truncate mt-0.5">{item.description}</p>
-        {ago && <p className="text-[10px] text-muted-foreground/70 mt-0.5">{ago}</p>}
+        <p className="text-xs text-muted-foreground truncate mt-0.5">
+          {item.description}
+          {ago && ` · ${ago}`}
+        </p>
       </div>
     </Link>
   )
@@ -90,8 +91,7 @@ export function NotificationBell() {
   const [loading, setLoading] = React.useState(false)
   const [data, setData] = React.useState<NotificationItem[] | null>(null)
 
-  async function fetchNotifications(force = false) {
-    if (data !== null && !force) return
+  async function fetchNotifications() {
     setLoading(true)
     try {
       const result = await getNotificationsAction()
@@ -102,14 +102,17 @@ export function NotificationBell() {
     }
   }
 
+  React.useEffect(() => {
+    fetchNotifications()
+  }, [])
+
   function handleOpenChange(next: boolean) {
     setOpen(next)
     if (next) fetchNotifications()
   }
 
   function refresh() {
-    setData(null)
-    fetchNotifications(true)
+    fetchNotifications()
   }
 
   function clearAll() {
@@ -179,13 +182,11 @@ export function NotificationBell() {
         )}
 
         {!loading && data !== null && data.length > 0 && (
-          <ScrollArea className="max-h-96">
-            <div className="py-1">
-              {data.map((item) => (
-                <NotificationRow key={item.id} item={item} onClose={() => setOpen(false)} />
-              ))}
-            </div>
-          </ScrollArea>
+          <div className="max-h-96 overflow-y-auto py-1">
+            {data.map((item) => (
+              <NotificationRow key={item.id} item={item} onClose={() => setOpen(false)} />
+            ))}
+          </div>
         )}
       </PopoverContent>
     </Popover>
