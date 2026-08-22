@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { z } from "zod"
+import { slugify } from "@/lib/utils"
 
 export type ActionState = { error?: string; success?: string }
 
@@ -160,13 +161,11 @@ export async function createCompanyAction(
   formData: FormData
 ): Promise<ActionState> {
   const companyName = (formData.get("companyName") as string)?.trim()
-  const companySlug = (formData.get("companySlug") as string)?.trim()
   const ownerName = (formData.get("ownerName") as string)?.trim()
+  const cnpj = (formData.get("cnpj") as string)?.trim()
 
   if (!companyName || companyName.length < 2)
     return { error: "Nome da empresa é obrigatório" }
-  if (!companySlug || !/^[a-z0-9-]{2,}$/.test(companySlug))
-    return { error: "Identificador inválido (use letras minúsculas, números e hífens)" }
   if (!ownerName || ownerName.length < 2)
     return { error: "Seu nome é obrigatório" }
 
@@ -174,19 +173,35 @@ export async function createCompanyAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const { error } = await supabase.rpc("create_company_with_owner", {
-    p_company_name: companyName,
-    p_company_slug: companySlug,
-    p_owner_name: ownerName,
-    p_owner_email: user.email!,
-  })
+  const baseSlug = slugify(companyName) || "empresa"
+  let companyId: string | null = null
 
-  if (error) {
-    if (error.message.includes("slug_taken"))
-      return { error: "Este identificador já está em uso. Tente outro." }
-    if (error.message.includes("already_has_company"))
-      redirect("/dashboard")
-    return { error: "Erro ao criar empresa. Tente novamente." }
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const companySlug = attempt === 0 ? baseSlug : `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`
+
+    const { data, error } = await supabase.rpc("create_company_with_owner", {
+      p_company_name: companyName,
+      p_company_slug: companySlug,
+      p_owner_name: ownerName,
+      p_owner_email: user.email!,
+    })
+
+    if (!error) {
+      companyId = data as string
+      break
+    }
+    if (error.message.includes("already_has_company")) redirect("/dashboard")
+    if (!error.message.includes("slug_taken"))
+      return { error: "Erro ao criar empresa. Tente novamente." }
+  }
+
+  if (!companyId) return { error: "Erro ao criar empresa. Tente novamente." }
+
+  if (cnpj) {
+    await supabase
+      .from("company_settings")
+      .update({ cnpj })
+      .eq("company_id", companyId)
   }
 
   redirect("/dashboard")

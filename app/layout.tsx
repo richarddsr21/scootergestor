@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ScooterGestor",
     description: "Sistema completo para lojas e oficinas de scooters elétricas.",
-    url: "https://scootergestor.vercel.app",
+    url: "https://scootergestor.com.br",
     siteName: "ScooterGestor",
     locale: "pt_BR",
     type: "website",

@@ -47,3 +47,10 @@ next-env.d.ts
 
 # supabase
 supabase/.temp/
+
+# criativos de Instagram gerados (scripts/criativos/export.ts)
+/out/
+
+# ferramenta interna de geração de criativos — não faz parte do produto
+/app/dev/
+/scripts/criativos/

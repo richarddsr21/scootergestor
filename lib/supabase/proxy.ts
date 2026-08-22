@@ -39,7 +39,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/termos-de-uso") ||
     pathname.startsWith("/aceitar-convite") ||
     pathname.startsWith("/acompanhar") ||
-    pathname.startsWith("/api/webhooks/")
+    pathname.startsWith("/api/webhooks/") ||
+    pathname.startsWith("/auth/callback")
 
   const isAuthRoute =
     pathname.startsWith("/login") ||
