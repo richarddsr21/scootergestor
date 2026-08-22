@@ -36,7 +36,7 @@ const trustBadges = [
 
 export function LandingFooter() {
   return (
-    <footer style={{ background: "oklch(0.055 0.020 255)" }} className="border-t border-white/[0.06] text-zinc-400">
+    <footer id="contato" style={{ background: "oklch(0.055 0.020 255)" }} className="border-t border-white/[0.06] text-zinc-400 scroll-mt-16">
       {/* Top divider accent */}
       <div
         className="h-px w-full"
